@@ -329,11 +329,14 @@ body {
   inset: 0;
   background: rgba(26, 10, 46, 0.85);
   backdrop-filter: blur(6px);
-  display: flex;
   align-items: center;
   justify-content: center;
   z-index: 300;
   padding: 1rem;
+}
+
+.game-over:not([hidden]) {
+  display: flex;
 }
 
 .game-over-card {
