@@ -1,9 +1,19 @@
+export function parseAmount(value) {
+  if (value == null || value === '') return null;
+  const normalized = String(value).trim().replace(/\s/g, '').replace(/,/g, '.');
+  const parsed = parseFloat(normalized);
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return parsed;
+}
+
 export function formatCurrency(amount) {
+  const safe = Number(amount);
+  if (!Number.isFinite(safe)) return '$0.00';
   return new Intl.NumberFormat('es-MX', {
     style: 'currency',
     currency: 'MXN',
     minimumFractionDigits: 2,
-  }).format(amount);
+  }).format(safe);
 }
 
 export function formatDate(dateStr) {

@@ -3,6 +3,7 @@ import {
   addIncome,
   addExpense,
   updateExpense,
+  updateIncome,
   updateSettings,
   CATEGORIES,
   PAYMENT_METHODS,
@@ -12,6 +13,7 @@ import {
 import {
   formatCurrency,
   formatDate,
+  parseAmount,
   getTotalIncome,
   getTotalExpenses,
   getPossibleDeductions,
@@ -119,6 +121,28 @@ function readFileAsBase64(file) {
   });
 }
 
+function amountInput(id, name, { value = '', placeholder = '0.00', required = true, className = '' } = {}) {
+  const req = required ? 'required' : '';
+  return `
+    <input
+      type="text"
+      inputmode="decimal"
+      pattern="[0-9.,]*"
+      id="${id}"
+      name="${name}"
+      class="amount-input ${className}"
+      placeholder="${placeholder}"
+      value="${value}"
+      autocomplete="off"
+      ${req}
+    >
+  `;
+}
+
+function getFormAmount(fd, field = 'amount') {
+  return parseAmount(fd.get(field));
+}
+
 /* ─── Dashboard ─── */
 function renderDashboard() {
   const totalIncome = getTotalIncome(state.incomes);
@@ -132,6 +156,23 @@ function renderDashboard() {
   const score = getPreparationScore(state.incomes, state.expenses);
 
   return `
+    <div class="card quick-capture mb-1">
+      <div class="section-title">Registro rápido <span>escriba sus cantidades aquí</span></div>
+      <div class="grid grid-2">
+        <form id="quick-income-form" class="quick-form">
+          <label class="quick-label" for="quick-income-amount">+ Ingreso</label>
+          ${amountInput('quick-income-amount', 'amount', { className: 'quick-amount income-amount' })}
+          <button type="submit" class="btn btn-primary btn-sm btn-block mt-1">Agregar ingreso</button>
+        </form>
+        <form id="quick-expense-form" class="quick-form">
+          <label class="quick-label" for="quick-expense-amount">− Gasto</label>
+          ${amountInput('quick-expense-amount', 'amount', { className: 'quick-amount expense-amount' })}
+          <button type="submit" class="btn btn-secondary btn-sm btn-block mt-1">Agregar gasto</button>
+        </form>
+      </div>
+      <p class="card-hint mt-1">Los totales se actualizan al guardar. Use las pestañas Ingreso/Gasto para más detalles.</p>
+    </div>
+
     <div class="grid grid-3 mb-1">
       <div class="card card-hero income">
         <div class="card-label">Ingresos totales</div>
@@ -213,7 +254,7 @@ function renderIncomeForm() {
         <div class="form-row-2">
           <div class="field">
             <label for="income-amount">Monto *</label>
-            <input type="number" id="income-amount" name="amount" min="0" step="0.01" required placeholder="0.00">
+            ${amountInput('income-amount', 'amount')}
           </div>
           <div class="field">
             <label for="income-date">Fecha *</label>
@@ -264,7 +305,11 @@ function renderRecentIncomes() {
                 <td>${formatDate(i.date)}</td>
                 <td>${i.source}</td>
                 <td>${i.clientProject || '—'}</td>
-                <td class="amount" style="color:var(--income)">${formatCurrency(i.amount)}</td>
+                <td class="amount editable-amount" style="color:var(--income)">
+                  <button type="button" class="amount-edit-btn" data-edit-amount="income" data-id="${i.id}" title="Editar monto">
+                    ${formatCurrency(i.amount)}
+                  </button>
+                </td>
               </tr>
             `).join('')}
           </tbody>
@@ -283,7 +328,7 @@ function renderExpenseForm() {
         <div class="form-row-2">
           <div class="field">
             <label for="expense-amount">Monto *</label>
-            <input type="number" id="expense-amount" name="amount" min="0" step="0.01" required placeholder="0.00">
+            ${amountInput('expense-amount', 'amount')}
           </div>
           <div class="field">
             <label for="expense-date">Fecha *</label>
@@ -304,7 +349,7 @@ function renderExpenseForm() {
           </div>
           <div class="field">
             <label for="expense-commercial-pct">% uso comercial</label>
-            <input type="number" id="expense-commercial-pct" name="commercialUsePercent" min="0" max="100" value="100" placeholder="100">
+            ${amountInput('expense-commercial-pct', 'commercialUsePercent', { value: '100', placeholder: '100', required: false })}
             <div class="field-hint">Para gastos mixtos, ajuste después en SIFTING</div>
           </div>
         </div>
@@ -352,7 +397,11 @@ function renderRecentExpenses() {
                   <td>${e.merchant}</td>
                   <td>${e.category}</td>
                   <td><span class="status-badge status-${status.key}">${status.label}</span></td>
-                  <td class="amount" style="color:var(--expense)">${formatCurrency(e.amount)}</td>
+                  <td class="amount editable-amount" style="color:var(--expense)">
+                    <button type="button" class="amount-edit-btn" data-edit-amount="expense" data-id="${e.id}" title="Editar monto">
+                      ${formatCurrency(e.amount)}
+                    </button>
+                  </td>
                 </tr>
               `;
             }).join('')}
@@ -398,7 +447,7 @@ function renderSifting() {
         <div class="mixed-input" id="mixed-${e.id}" hidden>
           <div class="field">
             <label>¿Cuál porcentaje fue utilizado para fines comerciales?</label>
-            <input type="number" min="1" max="99" placeholder="Ej. 60" data-mixed-pct="${e.id}">
+            <input type="text" inputmode="decimal" pattern="[0-9.,]*" min="1" max="99" placeholder="Ej. 60" class="amount-input" data-mixed-pct="${e.id}">
           </div>
           <button class="btn btn-mixed btn-sm mt-1" data-confirm-mixed="${e.id}">Confirmar porcentaje</button>
         </div>
@@ -711,16 +760,90 @@ function render() {
   content.innerHTML = views[currentView]();
   updateSiftingBadge();
   bindViewEvents();
+  focusPrimaryAmountInput();
+}
+
+function focusPrimaryAmountInput() {
+  const focusMap = {
+    dashboard: '#quick-income-amount',
+    income: '#income-amount',
+    expense: '#expense-amount',
+  };
+  const selector = focusMap[currentView];
+  if (!selector) return;
+  requestAnimationFrame(() => {
+    const input = $(selector);
+    if (input) input.focus();
+  });
 }
 
 function bindViewEvents() {
+  const quickIncomeForm = $('#quick-income-form');
+  if (quickIncomeForm) {
+    quickIncomeForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fd = new FormData(quickIncomeForm);
+      const amount = getFormAmount(fd);
+      if (amount == null || amount <= 0) {
+        showToast('Escriba un monto válido mayor a 0', 'error');
+        return;
+      }
+      const today = new Date().toISOString().slice(0, 10);
+      addIncome(state, {
+        amount,
+        date: today,
+        source: 'Otro',
+        clientProject: '',
+        paymentMethod: '',
+        notes: 'Registro rápido desde panel',
+      });
+      showToast(`Ingreso de ${formatCurrency(amount)} registrado`);
+      quickIncomeForm.reset();
+      render();
+    });
+  }
+
+  const quickExpenseForm = $('#quick-expense-form');
+  if (quickExpenseForm) {
+    quickExpenseForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fd = new FormData(quickExpenseForm);
+      const amount = getFormAmount(fd);
+      if (amount == null || amount <= 0) {
+        showToast('Escriba un monto válido mayor a 0', 'error');
+        return;
+      }
+      const today = new Date().toISOString().slice(0, 10);
+      addExpense(state, {
+        amount,
+        date: today,
+        merchant: 'Gasto rápido',
+        category: 'Otros',
+        commercialPurpose: '',
+        clientProject: '',
+        commercialUsePercent: 100,
+        notes: 'Registro rápido desde panel',
+        receiptData: null,
+        receiptName: null,
+      });
+      showToast(`Gasto de ${formatCurrency(amount)} registrado — clasifíquelo en SIFTING`);
+      quickExpenseForm.reset();
+      render();
+    });
+  }
+
   const incomeForm = $('#income-form');
   if (incomeForm) {
     incomeForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const fd = new FormData(incomeForm);
+      const amount = getFormAmount(fd);
+      if (amount == null || amount <= 0) {
+        showToast('Escriba un monto válido mayor a 0', 'error');
+        return;
+      }
       addIncome(state, {
-        amount: Number(fd.get('amount')),
+        amount,
         date: fd.get('date'),
         source: fd.get('source'),
         clientProject: fd.get('clientProject') || '',
@@ -754,6 +877,11 @@ function bindViewEvents() {
     expenseForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(expenseForm);
+      const amount = getFormAmount(fd);
+      if (amount == null || amount <= 0) {
+        showToast('Escriba un monto válido mayor a 0', 'error');
+        return;
+      }
       let receiptData = null;
       let receiptName = null;
       const file = receiptInput?.files[0];
@@ -762,14 +890,15 @@ function bindViewEvents() {
         receiptData = result.data;
         receiptName = result.name;
       }
+      const commercialPct = parseAmount(fd.get('commercialUsePercent'));
       addExpense(state, {
-        amount: Number(fd.get('amount')),
+        amount,
         date: fd.get('date'),
         merchant: fd.get('merchant'),
         category: fd.get('category'),
         commercialPurpose: fd.get('commercialPurpose') || '',
         clientProject: fd.get('clientProject') || '',
-        commercialUsePercent: Number(fd.get('commercialUsePercent')) || 100,
+        commercialUsePercent: commercialPct ?? 100,
         notes: fd.get('notes') || '',
         receiptData,
         receiptName,
@@ -777,11 +906,47 @@ function bindViewEvents() {
       showToast('Gasto registrado — clasifíquelo en SIFTING');
       expenseForm.reset();
       $('#expense-date').value = new Date().toISOString().slice(0, 10);
-      $('#expense-commercial-pct').value = 100;
+      const pctField = $('#expense-commercial-pct');
+      if (pctField) pctField.value = '100';
       $('#receipt-preview').innerHTML = '';
       render();
     });
   }
+
+  $$('[data-edit-amount]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const type = btn.dataset.editAmount;
+      const id = btn.dataset.id;
+      const current = type === 'income'
+        ? state.incomes.find((i) => i.id === id)
+        : state.expenses.find((e) => e.id === id);
+      if (!current) return;
+
+      openModal('Editar monto', `
+        <div class="field">
+          <label>Nuevo monto</label>
+          ${amountInput('modal-amount', 'amount', { value: String(current.amount), className: 'quick-amount' })}
+        </div>
+        <button class="btn btn-primary btn-block mt-1" id="modal-amount-save">Guardar monto</button>
+      `);
+
+      $('#modal-amount-save').addEventListener('click', () => {
+        const amount = parseAmount($('#modal-amount').value);
+        if (amount == null || amount <= 0) {
+          showToast('Escriba un monto válido mayor a 0', 'error');
+          return;
+        }
+        if (type === 'income') {
+          updateIncome(state, id, { amount });
+        } else {
+          updateExpense(state, id, { amount });
+        }
+        closeModal();
+        showToast(`Monto actualizado a ${formatCurrency(amount)}`);
+        render();
+      });
+    });
+  });
 
   $$('[data-classify]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -802,8 +967,8 @@ function bindViewEvents() {
     btn.addEventListener('click', () => {
       const id = btn.dataset.confirmMixed;
       const input = $(`[data-mixed-pct="${id}"]`);
-      const pct = Number(input.value);
-      if (!pct || pct < 1 || pct > 99) {
+      const pct = parseAmount(input.value);
+      if (pct == null || pct < 1 || pct > 99) {
         showToast('Ingrese un porcentaje entre 1 y 99', 'error');
         return;
       }

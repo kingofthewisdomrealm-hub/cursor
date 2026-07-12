@@ -365,7 +365,8 @@ body::before {
 
 .field input,
 .field select,
-.field textarea {
+.field textarea,
+.amount-input {
   width: 100%;
   padding: 0.7rem 0.9rem;
   background: var(--bg);
@@ -375,11 +376,37 @@ body::before {
   font-family: var(--font);
   font-size: 0.95rem;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.amount-input {
+  font-family: var(--mono);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.amount-input.quick-amount {
+  font-size: 1.75rem;
+  padding: 0.85rem 1rem;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+.amount-input.income-amount:focus {
+  border-color: var(--income);
+  box-shadow: 0 0 0 3px var(--income-dim);
+}
+
+.amount-input.expense-amount:focus {
+  border-color: var(--expense);
+  box-shadow: 0 0 0 3px var(--expense-dim);
 }
 
 .field input:focus,
 .field select:focus,
-.field textarea:focus {
+.field textarea:focus,
+.amount-input:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-dim);
@@ -937,4 +964,43 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: var(--radius-sm);
   border-left: 3px solid var(--accent);
   margin-top: 1rem;
+}
+
+.quick-capture {
+  background: linear-gradient(135deg, rgba(61, 214, 195, 0.08), rgba(167, 139, 250, 0.06));
+  border-color: var(--border-strong);
+}
+
+.quick-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.quick-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.amount-edit-btn {
+  background: none;
+  border: 1px dashed transparent;
+  border-radius: 6px;
+  color: inherit;
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: inherit;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.amount-edit-btn:hover {
+  border-color: var(--border-strong);
+  background: var(--bg);
+}
+
+.editable-amount {
+  white-space: nowrap;
 }

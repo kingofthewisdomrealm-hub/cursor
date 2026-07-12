@@ -59,6 +59,14 @@ export function updateExpense(state, id, updates) {
   return state.expenses[idx];
 }
 
+export function updateIncome(state, id, updates) {
+  const idx = state.incomes.findIndex((i) => i.id === id);
+  if (idx === -1) return null;
+  state.incomes[idx] = { ...state.incomes[idx], ...updates };
+  saveState(state);
+  return state.incomes[idx];
+}
+
 export function updateSettings(state, settings) {
   state.settings = { ...state.settings, ...settings };
   saveState(state);
