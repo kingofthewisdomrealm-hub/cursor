@@ -1,37 +1,36 @@
-const TECHNIQUE_PROMPTS: Record<string, string> = {
-  'tech-misdirection': 'Use misdirection: set up one expectation, then subtly flip it.',
-  'tech-exaggeration': 'Use exaggeration: take the truth and crank it to eleven.',
-  'tech-callback': 'Use a callback: reference the observation in a surprising way.',
-  'tech-rule-of-three': 'Use the rule of three: two normal beats, then an absurd third.',
-  'tech-self-deprecation': 'Use self-deprecation: make yourself the punchline before they can.',
-  'tech-deadpan': 'Use deadpan delivery: state something wild like it is mundane.',
-};
-
-function getTechniqueInstruction(techniqueId: string, techniqueText: string): string {
-  return TECHNIQUE_PROMPTS[techniqueId] ?? techniqueText;
+export function parseTechniqueCard(text: string): { name: string; instruction: string } {
+  const dash = text.indexOf(' — ');
+  if (dash !== -1) {
+    return {
+      name: text.slice(0, dash).trim(),
+      instruction: text.slice(dash + 3).trim(),
+    };
+  }
+  return { name: text, instruction: text };
 }
 
 export async function generateTechniqueBridge(
   observation: string,
-  techniqueId: string,
+  _techniqueId: string,
   techniqueText: string,
 ): Promise<string> {
+  const { name, instruction } = parseTechniqueCard(techniqueText);
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
-  const instruction = getTechniqueInstruction(techniqueId, techniqueText);
 
   if (apiKey) {
     try {
-      return await callOpenAI(observation, instruction, apiKey);
+      return await callOpenAI(observation, name, instruction, apiKey);
     } catch {
-      return generateLocalBridge(observation, techniqueId, instruction);
+      return generateFromInstruction(observation, name, instruction);
     }
   }
 
-  return generateLocalBridge(observation, techniqueId, instruction);
+  return generateFromInstruction(observation, name, instruction);
 }
 
 async function callOpenAI(
   observation: string,
+  techniqueName: string,
   techniqueInstruction: string,
   apiKey: string,
 ): Promise<string> {
@@ -43,17 +42,17 @@ async function callOpenAI(
     },
     body: JSON.stringify({
       model: 'gpt-4o-mini',
-      temperature: 0.9,
-      max_tokens: 120,
+      temperature: 0.95,
+      max_tokens: 150,
       messages: [
         {
           role: 'system',
           content:
-            'You are a stand-up comedy writing coach. Write short, punchy comedy bridges. Output only the bridge line — no quotes, labels, or explanation. Keep it to 1-2 sentences max.',
+            'You are a stand-up comedy writer. The technique card tells you exactly what to do. Write ONLY the resulting comedy line — no quotes, labels, or explanation. One or two sentences max. Be funny and specific.',
         },
         {
           role: 'user',
-          content: `Observation: "${observation}"\n\nTechnique: ${techniqueInstruction}\n\nWrite a funny bridge that applies this technique to the observation. This connects the setup to a punchline — do NOT write the punchline.`,
+          content: `OBSERVATION (the setup):\n"${observation}"\n\nTECHNIQUE CARD:\n"${techniqueName} — ${techniqueInstruction}"\n\nWrite the comedy line that does EXACTLY what this technique card says. Apply "${techniqueInstruction}" to the observation. This is the middle of a joke — do NOT write the punchline.`,
         },
       ],
     }),
@@ -72,33 +71,57 @@ async function callOpenAI(
   return text.replace(/^["']|["']$/g, '');
 }
 
-const LOCAL_BRIDGES: Record<string, (obs: string) => string> = {
-  'tech-misdirection': (obs) =>
-    `You'd think ${lowerFirst(obs)} — but plot twist:`,
-  'tech-exaggeration': (obs) =>
-    `And I'm not exaggerating when I say ${lowerFirst(obs)} — it's actually worse.`,
-  'tech-callback': (obs) =>
-    `Which reminds me — ${lowerFirst(obs)} Same energy, different day.`,
-  'tech-rule-of-three': (obs) =>
-    `${obs} First time, awkward. Second time, concerning. Third time, my entire personality.`,
-  'tech-self-deprecation': (obs) =>
-    `Look, I'm not saying ${lowerFirst(obs)} — but I'm definitely the type of person it happens to.`,
-  'tech-deadpan': (obs) =>
-    `${obs} Anyway, moving on.`,
-};
-
 function lowerFirst(text: string): string {
-  return text.charAt(0).toLowerCase() + text.slice(1);
+  const trimmed = text.replace(/\.$/, '');
+  return trimmed.charAt(0).toLowerCase() + trimmed.slice(1);
 }
 
-function generateLocalBridge(
+function generateFromInstruction(
   observation: string,
-  techniqueId: string,
+  techniqueName: string,
   instruction: string,
 ): string {
-  const generator = LOCAL_BRIDGES[techniqueId];
-  if (generator) return generator(observation);
+  const lower = instruction.toLowerCase();
+  const nameLower = techniqueName.toLowerCase();
+  const obs = lowerFirst(observation);
 
-  const topic = observation.split(' ').slice(0, 4).join(' ');
-  return `So using ${instruction.split(':')[0].toLowerCase()} on "${topic}..." — here's where it gets interesting.`;
+  if (lower.includes('flip') || lower.includes('expectation') || nameLower.includes('misdirection')) {
+    return `You'd think ${obs} — but plot twist:`;
+  }
+
+  if (lower.includes('eleven') || lower.includes('crank') || nameLower.includes('exaggeration')) {
+    return `And I'm not exaggerating when I say ${obs} — it's actually worse. Like, catastrophically worse.`;
+  }
+
+  if (lower.includes('earlier') || lower.includes('callback') || nameLower.includes('callback')) {
+    return `Which reminds me — ${obs} Same energy, different day.`;
+  }
+
+  if (lower.includes('third') || lower.includes('rule of three') || nameLower.includes('rule of three')) {
+    return `${observation.replace(/\.$/, '')}. First time, awkward. Second time, concerning. Third time, my entire personality.`;
+  }
+
+  if (lower.includes('yourself') || lower.includes('punchline before') || nameLower.includes('self-deprecation')) {
+    return `Look, I'm not saying ${obs} — but I'm definitely the type of person it happens to.`;
+  }
+
+  if (lower.includes('grocery') || lower.includes('mundane') || lower.includes('deadpan') || nameLower.includes('deadpan')) {
+    return `${observation.replace(/\.$/, '')}. Anyway, moving on.`;
+  }
+
+  if (lower.includes('reference') || lower.includes('call back')) {
+    return `Speaking of which — ${obs} — yeah, that tracks for me.`;
+  }
+
+  if (lower.includes('absurd')) {
+    return `So naturally, ${obs} and somehow that's the NORMAL part of my week.`;
+  }
+
+  if (lower.includes('contrast') || lower.includes('compare')) {
+    return `On one hand, ${obs} On the other hand, I paid money to experience this.`;
+  }
+
+  // Generic: literally apply whatever the card instruction says
+  const action = instruction.replace(/\.$/, '').toLowerCase();
+  return `${obs.charAt(0).toUpperCase() + obs.slice(1)} — so I ${action}, and honestly? Nailed it.`;
 }

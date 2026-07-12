@@ -44,7 +44,7 @@ export function Stage({ activeSlot }: StageProps) {
           <h2 className="font-display text-2xl tracking-widest text-stage-spotlight">
             THE STAGE
           </h2>
-          <p className="text-xs text-white/50">Drop cards — AI writes your technique bridge</p>
+          <p className="text-xs text-white/50">Technique cards are AI-written from whatever they say</p>
         </div>
 
         {isComplete && obs && generatedTechnique && punch && (

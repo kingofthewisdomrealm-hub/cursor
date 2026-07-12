@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { CardType } from '../types';
 import { CARD_TYPE_LABELS, CARD_TYPE_COLORS } from '../types';
 import { getCardById } from '../data/cards';
+import { parseTechniqueCard } from '../utils/aiTechnique';
 import { useGameStore } from '../store/gameStore';
 import { ComedyCardComponent } from './ComedyCard';
 
@@ -12,7 +13,9 @@ interface StageSlotProps {
   isOver: boolean;
 }
 
-function TechniqueGenerating() {
+function TechniqueGenerating({ techniqueText }: { techniqueText: string }) {
+  const { name, instruction } = parseTechniqueCard(techniqueText);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -26,7 +29,10 @@ function TechniqueGenerating() {
       >
         ✨
       </motion.div>
-      <p className="text-center text-xs font-medium text-white/70">AI generating technique...</p>
+      <p className="text-center text-xs font-medium text-white/70">AI writing your technique...</p>
+      <p className="text-center text-[10px] leading-snug text-white/50">
+        <span className="font-semibold text-card-tech">{name}:</span> {instruction}
+      </p>
       <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
         <motion.div
           className="h-full bg-card-tech"
@@ -117,7 +123,7 @@ export function StageSlot({ slotType, cardId, isOver }: StageSlotProps) {
       <div className="flex flex-1 items-center justify-center p-2">
         <AnimatePresence mode="wait">
           {card && showTechniqueGenerate && isGeneratingTechnique ? (
-            <TechniqueGenerating key="generating" />
+            <TechniqueGenerating key="generating" techniqueText={card.text} />
           ) : card && showTechniqueGenerate && techniqueError ? (
             <motion.div
               key="error"
@@ -153,8 +159,9 @@ export function StageSlot({ slotType, cardId, isOver }: StageSlotProps) {
             >
               {isTechnique && !hasObservation ? (
                 <div className="rounded-xl border-2 border-dashed border-card-tech/50 bg-card-tech/30 p-3">
-                  <p className="text-xs font-medium text-white">{card.text}</p>
-                  <p className="mt-1 text-[10px] text-white/50">Add an observation first</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-white/50">Will AI-generate:</p>
+                  <p className="mt-1 text-xs font-medium text-white">{card.text}</p>
+                  <p className="mt-1 text-[10px] text-white/50">Drop an observation first</p>
                 </div>
               ) : (
                 <ComedyCardComponent

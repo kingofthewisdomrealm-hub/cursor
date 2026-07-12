@@ -3,6 +3,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { motion } from 'framer-motion';
 import type { ComedyCard } from '../types';
 import { CARD_TYPE_COLORS } from '../types';
+import { parseTechniqueCard } from '../utils/aiTechnique';
 import { useGameStore } from '../store/gameStore';
 
 interface ComedyCardProps {
@@ -77,7 +78,7 @@ export function ComedyCardComponent({
         {card.text}
       </p>
       {card.type === 'technique' && !isOnStage && (
-        <p className="mt-1 text-[10px] text-white/50">AI generates the bridge on stage</p>
+        <p className="mt-1 text-[10px] text-white/50">AI writes: {parseTechniqueCard(card.text).instruction}</p>
       )}
     </motion.div>
   );
