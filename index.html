@@ -1,68 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Yes or No? — Situation Cards</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <div class="app">
-    <header class="header">
-      <h1>Yes or No?</h1>
-      <p class="subtitle">Drag each situation where it belongs</p>
-      <div class="scoreboard">
-        <div class="score-item score-correct">
-          <span class="score-label">Correct</span>
-          <span id="score-correct" class="score-value">0</span>
-        </div>
-        <div class="score-item score-streak">
-          <span class="score-label">Streak</span>
-          <span id="score-streak" class="score-value">0</span>
-        </div>
-        <div class="score-item score-remaining">
-          <span class="score-label">Left</span>
-          <span id="score-remaining" class="score-value">0</span>
-        </div>
-      </div>
-    </header>
-
-    <main class="game">
-      <div id="card-stack" class="card-stack" aria-live="polite">
-        <!-- Cards injected by JS -->
-      </div>
-
-      <div class="drop-zones">
-        <div class="drop-zone drop-zone-yes" data-answer="yes">
-          <div class="zone-icon">✓</div>
-          <h2>Worth Saying<br>Yes To</h2>
-          <p class="zone-hint">Drag here</p>
-        </div>
-        <div class="drop-zone drop-zone-no" data-answer="no">
-          <div class="zone-icon">✗</div>
-          <h2>Worth Saying<br>No To</h2>
-          <p class="zone-hint">Drag here</p>
-        </div>
-      </div>
-    </main>
-
-    <div id="feedback" class="feedback" hidden></div>
-
-    <div id="game-over" class="game-over" hidden>
-      <div class="game-over-card">
-        <h2>Round Complete!</h2>
-        <p class="final-score">
-          You got <span id="final-correct">0</span> out of <span id="final-total">0</span> right
-        </p>
-        <p id="final-message" class="final-message"></p>
-        <button id="play-again" class="btn-play-again">Play Again</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="game.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#1a0a2e" />
+    <meta name="description" content="Drag situation cards into Yes or No — a fun boundary-setting game." />
+    <title>Yes or No?</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

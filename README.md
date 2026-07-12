@@ -1,19 +1,34 @@
-# Yes or No? — Situation Cards
+# Yes or No?
 
-A simple drag-and-drop web game about knowing when to say yes and when to say no.
+A polished, mobile-friendly web game about knowing when to say yes and when to say no. Built with React + Vite — playable instantly in any browser.
+
+## Play locally
+
+```bash
+npm install
+npm run dev
+```
+
+Open **http://localhost:5173** in your browser.
+
+## Production build
+
+```bash
+npm run build
+npm run preview
+```
+
+Open **http://localhost:4173** to preview the production build.
 
 ## How to play
 
-1. Read the situation on each card.
-2. Drag it into **Worth Saying Yes To** or **Worth Saying No To**.
-3. Score points for correct choices and build a streak.
+1. Tap **Start Playing** on the welcome screen
+2. Read each situation card
+3. **Drag** the card to a zone, **tap** a drop zone, or use the **Say Yes / Say No** buttons
+4. Build your streak and see your final score
 
-Works on desktop (mouse) and mobile (touch drag).
+## Stack
 
-## Run locally
-
-```bash
-python3 -m http.server 8080
-```
-
-Then open [http://localhost:8080](http://localhost:8080).
+- React 19 + TypeScript
+- Vite
+- Tailwind CSS v4
