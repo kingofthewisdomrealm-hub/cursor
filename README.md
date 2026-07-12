@@ -1,19 +1,39 @@
-# Yes or No? — Situation Cards
+# Kill Tony Builder
 
-A simple drag-and-drop web game about knowing when to say yes and when to say no.
+A browser-based stand-up comedy game that teaches joke construction through drag-and-drop card building.
 
 ## How to play
 
-1. Read the situation on each card.
-2. Drag it into **Worth Saying Yes To** or **Worth Saying No To**.
-3. Score points for correct choices and build a streak.
+1. **Drag cards** from your deck into the three stage slots: Observation, Technique, and Punchline.
+2. **Preview your joke** on the virtual comedy-club stage.
+3. **Perform your joke** and watch the audience react.
+4. **Earn Laugh Points** based on your Laugh Score and Kill Tony Score.
+5. **Unlock new cards** as you accumulate Laugh Points.
 
-Works on desktop (mouse) and mobile (touch drag).
+Each card has hidden attributes (relatability, surprise, specificity, originality, brevity) that combine into your scores. Experiment with different combinations to find killer sets!
+
+## Tech stack
+
+- React + TypeScript
+- Tailwind CSS
+- Zustand (state + LocalStorage persistence)
+- Framer Motion (animations)
+- dnd-kit (drag and drop)
 
 ## Run locally
 
 ```bash
-python3 -m http.server 8080
+npm install
+npm run dev
 ```
 
-Then open [http://localhost:8080](http://localhost:8080).
+Open [http://localhost:5173](http://localhost:5173).
+
+## Build
+
+```bash
+npm run build
+npm run preview
+```
+
+Progress is saved automatically in your browser's LocalStorage.
