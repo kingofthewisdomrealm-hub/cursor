@@ -1,65 +1,55 @@
 import {
   loadState,
-  addIncome,
-  addExpense,
-  updateExpense,
-  updateIncome,
-  updateSettings,
-  CATEGORIES,
-  PAYMENT_METHODS,
-  INCOME_SOURCES,
+  addContact,
+  updateContact,
+  deleteContact,
+  addPendingCard,
+  classifyPendingCard,
+  setActiveMission,
+  completeMission,
+  logDailyActivity,
+  getTodayLog,
+  getTodayXpTotal,
+  addXp,
+  addChatMessage,
+  clearChatHistory,
+  setLastRadarResult,
+  ARCHETYPES,
+  RELATIONSHIP_TAGS,
 } from './store.js';
 
 import {
-  formatCurrency,
   formatDate,
-  parseAmount,
-  getTotalIncome,
-  getTotalExpenses,
-  getPossibleDeductions,
-  getEstimatedTaxableProfit,
-  getEstimatedTaxReserve,
-  getUnclassifiedExpenses,
-  getDocStatus,
-  getMissingReceiptsCount,
-  getPreparationScore,
-  getMonthlyChartData,
-  filterTransactions,
-  exportToCSV,
-  getUniqueClients,
-  getAvailableYears,
+  formatDaysAgo,
+  getRelationshipCounts,
+  generateOpportunityRadar,
+  generateConversationMission,
+  getSuggestedNextAction,
+  getConnectionScore,
+  getCoachResponse,
+  getInitials,
+  renderMarkdownLite,
 } from './logic.js';
 
 let state = loadState();
 let currentView = 'dashboard';
-let reportFilters = {};
+let draggedCardId = null;
 
 const VIEW_META = {
-  dashboard: { title: 'Panel Principal', subtitle: 'Centro de control financiero' },
-  income: { title: 'Registrar Ingreso', subtitle: 'Capture sus entradas de dinero' },
-  expense: { title: 'Registrar Gasto', subtitle: 'Documente cada egreso' },
-  sifting: { title: 'Motor SIFTING Fiscal', subtitle: 'Clasifique sus gastos pendientes' },
-  documentation: { title: 'Estado de Documentación', subtitle: 'Revise el estado de cada gasto' },
-  calculator: { title: 'Calculadora de Reserva Fiscal', subtitle: 'Estime su reserva de impuestos' },
-  reports: { title: 'Reportes', subtitle: 'Filtre y exporte sus datos' },
-  score: { title: 'Puntuación de Preparación Fiscal', subtitle: 'Mida su nivel de organización' },
+  dashboard: { title: 'Dashboard', subtitle: 'Your connection command center' },
+  radar: { title: 'Opportunity Radar', subtitle: 'Real-world targeting system' },
+  mission: { title: 'Conversation Mission', subtitle: 'Prepare before you approach' },
+  sifting: { title: 'Sifting Board', subtitle: 'Classify people after conversation' },
+  crm: { title: 'Relationship CRM', subtitle: 'Your relationship database' },
+  coach: { title: 'Zoom-Fu AI', subtitle: 'Your connection coach' },
+  score: { title: 'Human Connection Score', subtitle: 'Measure and improve daily' },
 };
 
-const MONTHS = [
-  { value: '', label: 'Todos los meses' },
-  { value: '1', label: 'Enero' }, { value: '2', label: 'Febrero' }, { value: '3', label: 'Marzo' },
-  { value: '4', label: 'Abril' }, { value: '5', label: 'Mayo' }, { value: '6', label: 'Junio' },
-  { value: '7', label: 'Julio' }, { value: '8', label: 'Agosto' }, { value: '9', label: 'Septiembre' },
-  { value: '10', label: 'Octubre' }, { value: '11', label: 'Noviembre' }, { value: '12', label: 'Diciembre' },
-];
-
-const DOC_STATUSES = [
-  { value: '', label: 'Todos los estados' },
-  { value: 'ready', label: 'Listo para revisión' },
-  { value: 'missing-receipt', label: 'Falta recibo' },
-  { value: 'missing-purpose', label: 'Falta propósito comercial' },
-  { value: 'needs-clarification', label: 'Necesita aclaración' },
-  { value: 'personal', label: 'Gasto personal' },
+const COACH_PROMPTS = [
+  'What should I say?',
+  'What questions should I ask?',
+  'How do I deepen rapport?',
+  'How do I follow up?',
 ];
 
 function $(sel) { return document.querySelector(sel); }
@@ -71,7 +61,7 @@ function showToast(message, type = 'success') {
   toast.className = `toast ${type}`;
   toast.textContent = message;
   container.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
+  setTimeout(() => toast.remove(), 3500);
 }
 
 function openModal(title, html) {
@@ -92,6 +82,7 @@ function navigate(view) {
   const meta = VIEW_META[view];
   $('#view-title').textContent = meta.title;
   $('#view-subtitle').textContent = meta.subtitle;
+  updateTopbarXp();
   render();
   closeSidebar();
 }
@@ -101,8 +92,13 @@ function closeSidebar() {
   $('#overlay').classList.remove('visible');
 }
 
+function updateTopbarXp() {
+  const xp = getTodayXpTotal(state);
+  $('#topbar-xp').textContent = xp > 0 ? `+${xp} XP today` : '0 XP today';
+}
+
 function updateSiftingBadge() {
-  const count = getUnclassifiedExpenses(state.expenses).length;
+  const count = state.pendingCards.length;
   const badge = $('#sifting-badge');
   if (count > 0) {
     badge.textContent = count;
@@ -112,587 +108,375 @@ function updateSiftingBadge() {
   }
 }
 
-function readFileAsBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve({ data: reader.result, name: file.name });
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-function amountInput(id, name, { value = '', placeholder = '0.00', required = true, className = '' } = {}) {
-  const req = required ? 'required' : '';
-  return `
-    <input
-      type="text"
-      inputmode="decimal"
-      pattern="[0-9.,]*"
-      id="${id}"
-      name="${name}"
-      class="amount-input ${className}"
-      placeholder="${placeholder}"
-      value="${value}"
-      autocomplete="off"
-      ${req}
-    >
-  `;
-}
-
-function getFormAmount(fd, field = 'amount') {
-  return parseAmount(fd.get(field));
+function tagBadgeHtml(tag) {
+  const labels = {
+    mentor: 'Mentor', friend: 'Friend', client: 'Client',
+    romantic: 'Romantic', collaborator: 'Collaborator',
+  };
+  return `<span class="tag-badge tag-${tag}">${labels[tag] || tag}</span>`;
 }
 
 /* ─── Dashboard ─── */
 function renderDashboard() {
-  const totalIncome = getTotalIncome(state.incomes);
-  const totalExpenses = getTotalExpenses(state.expenses);
-  const deductions = getPossibleDeductions(state.expenses);
-  const profit = getEstimatedTaxableProfit(state.incomes, state.expenses);
-  const reserve = getEstimatedTaxReserve(state.incomes, state.expenses, state.settings.taxPercentage);
-  const missingReceipts = getMissingReceiptsCount(state.expenses);
-  const chartData = getMonthlyChartData(state.incomes, state.expenses);
-  const maxVal = Math.max(...chartData.flatMap((d) => [d.income, d.expense]), 1);
-  const score = getPreparationScore(state.incomes, state.expenses);
+  const counts = getRelationshipCounts(state.contacts);
+  const todayXp = getTodayXpTotal(state);
+  const score = getConnectionScore(state.dailyLogs, state.contacts);
 
   return `
-    <div class="card quick-capture mb-1">
-      <div class="section-title">Registro rápido <span>escriba sus cantidades aquí</span></div>
-      <div class="grid grid-2">
-        <form id="quick-income-form" class="quick-form">
-          <label class="quick-label" for="quick-income-amount">+ Ingreso</label>
-          ${amountInput('quick-income-amount', 'amount', { className: 'quick-amount income-amount' })}
-          <button type="submit" class="btn btn-primary btn-sm btn-block mt-1">Agregar ingreso</button>
-        </form>
-        <form id="quick-expense-form" class="quick-form">
-          <label class="quick-label" for="quick-expense-amount">− Gasto</label>
-          ${amountInput('quick-expense-amount', 'amount', { className: 'quick-amount expense-amount' })}
-          <button type="submit" class="btn btn-secondary btn-sm btn-block mt-1">Agregar gasto</button>
-        </form>
-      </div>
-      <p class="card-hint mt-1">Los totales se actualizan al guardar. Use las pestañas Ingreso/Gasto para más detalles.</p>
-    </div>
-
-    <div class="grid grid-3 mb-1">
-      <div class="card card-hero income">
-        <div class="card-label">Ingresos totales</div>
-        <div class="card-value income">${formatCurrency(totalIncome)}</div>
-      </div>
-      <div class="card card-hero expense">
-        <div class="card-label">Gastos totales</div>
-        <div class="card-value expense">${formatCurrency(totalExpenses)}</div>
-      </div>
-      <div class="card card-hero deduction">
-        <div class="card-label">Posibles deducciones de negocio</div>
-        <div class="card-value deduction">${formatCurrency(deductions)}</div>
-        <div class="card-hint">No constituye asesoría fiscal</div>
-      </div>
-    </div>
-    <div class="grid grid-3 mb-1">
-      <div class="card card-hero profit">
-        <div class="card-label">Ganancia imponible estimada</div>
-        <div class="card-value profit">${formatCurrency(profit)}</div>
-        <div class="card-hint">Ingresos − posibles deducciones</div>
-      </div>
-      <div class="card card-hero reserve">
-        <div class="card-label">Reserva fiscal estimada</div>
-        <div class="card-value reserve">${formatCurrency(reserve)}</div>
-        <div class="card-hint">Al ${state.settings.taxPercentage}% · Consulte con un profesional</div>
-      </div>
-      <div class="card card-hero warning">
-        <div class="card-label">Recibos faltantes</div>
-        <div class="card-value warning">${missingReceipts}</div>
-        <div class="card-hint">Gastos de negocio sin recibo adjunto</div>
-      </div>
-    </div>
-
-    <div class="grid grid-2 mt-2">
-      <div class="card chart-card">
-        <div class="section-title">Flujo mensual <span>últimos 6 meses</span></div>
-        ${chartData.every((d) => d.income === 0 && d.expense === 0)
-          ? '<div class="empty-state"><div class="icon">📊</div><p>Sin datos aún</p></div>'
-          : `<div class="chart-bars">
-              ${chartData.map((d) => `
-                <div class="chart-bar-group">
-                  <div class="chart-bar-wrap">
-                    <div class="chart-bar income" style="height:${(d.income / maxVal) * 100}%"></div>
-                  </div>
-                  <div class="chart-bar-wrap">
-                    <div class="chart-bar expense" style="height:${(d.expense / maxVal) * 100}%"></div>
-                  </div>
-                  <div class="chart-label">${d.label}</div>
-                </div>
-              `).join('')}
-            </div>
-            <div class="flex-between mt-1" style="font-size:0.78rem;color:var(--text-muted)">
-              <span><span style="color:var(--income)">■</span> Ingresos</span>
-              <span><span style="color:var(--expense)">■</span> Gastos</span>
-            </div>`
-        }
-      </div>
+    <div class="grid grid-2 mb-1">
       <div class="card">
-        <div class="section-title">Puntuación de Preparación Fiscal</div>
-        <div class="flex-between mb-1">
-          <span style="font-size:2rem;font-weight:700;font-family:var(--mono);color:var(--accent)">${score.total}%</span>
-          <button class="btn btn-secondary btn-sm" data-nav="score">Ver detalle →</button>
-        </div>
-        <div class="progress-bar"><div class="progress-fill accent" style="width:${score.total}%"></div></div>
-        <p class="card-hint mt-1">${score.recommendations[0]}</p>
-      </div>
-    </div>
-
-    <p class="legal-note mt-2">Esta herramienta ofrece estimaciones orientativas. No sustituye la asesoría de un profesional de impuestos.</p>
-  `;
-}
-
-/* ─── Income Form ─── */
-function renderIncomeForm() {
-  const today = new Date().toISOString().slice(0, 10);
-  return `
-    <div class="card form-card">
-      <form id="income-form" class="form-grid">
-        <div class="form-row-2">
-          <div class="field">
-            <label for="income-amount">Monto *</label>
-            ${amountInput('income-amount', 'amount')}
-          </div>
-          <div class="field">
-            <label for="income-date">Fecha *</label>
-            <input type="date" id="income-date" name="date" value="${today}" required>
-          </div>
-        </div>
-        <div class="field">
-          <label for="income-source">Fuente del ingreso *</label>
-          <select id="income-source" name="source" required>
-            <option value="">Seleccionar...</option>
-            ${INCOME_SOURCES.map((s) => `<option value="${s}">${s}</option>`).join('')}
-          </select>
-        </div>
-        <div class="field">
-          <label for="income-client">Cliente o proyecto</label>
-          <input type="text" id="income-client" name="clientProject" placeholder="Ej. Proyecto Web ABC">
-        </div>
-        <div class="field">
-          <label for="income-payment">Método de pago</label>
-          <select id="income-payment" name="paymentMethod">
-            <option value="">Seleccionar...</option>
-            ${PAYMENT_METHODS.map((m) => `<option value="${m}">${m}</option>`).join('')}
-          </select>
-        </div>
-        <div class="field">
-          <label for="income-notes">Notas</label>
-          <textarea id="income-notes" name="notes" placeholder="Detalles adicionales..."></textarea>
-        </div>
-        <button type="submit" class="btn btn-primary">Registrar ingreso</button>
-      </form>
-    </div>
-    ${renderRecentIncomes()}
-  `;
-}
-
-function renderRecentIncomes() {
-  if (state.incomes.length === 0) return '';
-  const recent = [...state.incomes].reverse().slice(0, 5);
-  return `
-    <div class="mt-2">
-      <div class="section-title">Ingresos recientes</div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Fecha</th><th>Fuente</th><th>Cliente</th><th>Monto</th></tr></thead>
-          <tbody>
-            ${recent.map((i) => `
-              <tr>
-                <td>${formatDate(i.date)}</td>
-                <td>${i.source}</td>
-                <td>${i.clientProject || '—'}</td>
-                <td class="amount editable-amount" style="color:var(--income)">
-                  <button type="button" class="amount-edit-btn" data-edit-amount="income" data-id="${i.id}" title="Editar monto">
-                    ${formatCurrency(i.amount)}
-                  </button>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
-}
-
-/* ─── Expense Form ─── */
-function renderExpenseForm() {
-  const today = new Date().toISOString().slice(0, 10);
-  return `
-    <div class="card form-card">
-      <form id="expense-form" class="form-grid">
-        <div class="form-row-2">
-          <div class="field">
-            <label for="expense-amount">Monto *</label>
-            ${amountInput('expense-amount', 'amount')}
-          </div>
-          <div class="field">
-            <label for="expense-date">Fecha *</label>
-            <input type="date" id="expense-date" name="date" value="${today}" required>
-          </div>
-        </div>
-        <div class="field">
-          <label for="expense-merchant">Comercio o proveedor *</label>
-          <input type="text" id="expense-merchant" name="merchant" required placeholder="Ej. Amazon, Office Depot">
-        </div>
-        <div class="form-row-2">
-          <div class="field">
-            <label for="expense-category">Categoría *</label>
-            <select id="expense-category" name="category" required>
-              <option value="">Seleccionar...</option>
-              ${CATEGORIES.map((c) => `<option value="${c}">${c}</option>`).join('')}
-            </select>
-          </div>
-          <div class="field">
-            <label for="expense-commercial-pct">% uso comercial</label>
-            ${amountInput('expense-commercial-pct', 'commercialUsePercent', { value: '100', placeholder: '100', required: false })}
-            <div class="field-hint">Para gastos mixtos, ajuste después en SIFTING</div>
-          </div>
-        </div>
-        <div class="field">
-          <label for="expense-purpose">Propósito comercial</label>
-          <input type="text" id="expense-purpose" name="commercialPurpose" placeholder="Ej. Software para diseño de cliente X">
-        </div>
-        <div class="field">
-          <label for="expense-client">Cliente o proyecto relacionado</label>
-          <input type="text" id="expense-client" name="clientProject" placeholder="Ej. Proyecto Web ABC">
-        </div>
-        <div class="field">
-          <label for="expense-receipt">Subir recibo</label>
-          <input type="file" id="expense-receipt" name="receipt" accept="image/*,.pdf">
-          <div class="field-hint">Imagen o PDF (máx. 2 MB)</div>
-          <div id="receipt-preview"></div>
-        </div>
-        <div class="field">
-          <label for="expense-notes">Notas</label>
-          <textarea id="expense-notes" name="notes" placeholder="Detalles adicionales..."></textarea>
-        </div>
-        <button type="submit" class="btn btn-primary">Registrar gasto</button>
-      </form>
-      <p class="legal-note">Los montos registrados son posibles deducciones hasta que un profesional de impuestos los valide.</p>
-    </div>
-    ${renderRecentExpenses()}
-  `;
-}
-
-function renderRecentExpenses() {
-  if (state.expenses.length === 0) return '';
-  const recent = [...state.expenses].reverse().slice(0, 5);
-  return `
-    <div class="mt-2">
-      <div class="section-title">Gastos recientes</div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Fecha</th><th>Comercio</th><th>Categoría</th><th>Estado</th><th>Monto</th></tr></thead>
-          <tbody>
-            ${recent.map((e) => {
-              const status = getDocStatus(e);
-              return `
-                <tr>
-                  <td>${formatDate(e.date)}</td>
-                  <td>${e.merchant}</td>
-                  <td>${e.category}</td>
-                  <td><span class="status-badge status-${status.key}">${status.label}</span></td>
-                  <td class="amount editable-amount" style="color:var(--expense)">
-                    <button type="button" class="amount-edit-btn" data-edit-amount="expense" data-id="${e.id}" title="Editar monto">
-                      ${formatCurrency(e.amount)}
-                    </button>
-                  </td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
-}
-
-/* ─── SIFTING ─── */
-function renderSifting() {
-  const unclassified = getUnclassifiedExpenses(state.expenses);
-  if (unclassified.length === 0) {
-    return `
-      <div class="card empty-state">
-        <div class="icon">✓</div>
-        <h3>¡Todo clasificado!</h3>
-        <p>No hay gastos pendientes de clasificar. Registre nuevos gastos para continuar.</p>
-        <button class="btn btn-primary mt-1" data-nav="expense">Registrar gasto</button>
-      </div>
-    `;
-  }
-
-  return `
-    <p class="card-hint mb-1">Clasifique cada gasto para determinar posibles deducciones. Consulte con un profesional de impuestos.</p>
-    ${unclassified.map((e) => `
-      <div class="card sifting-card" data-expense-id="${e.id}">
-        <div class="sifting-amount">${formatCurrency(e.amount)}</div>
-        <div style="font-size:0.95rem;color:var(--text-muted)">${formatDate(e.date)} · ${e.merchant}</div>
-        <div class="sifting-meta">
-          <span>Categoría: <strong>${e.category}</strong></span>
-          ${e.commercialPurpose ? `<span>Propósito: <strong>${e.commercialPurpose}</strong></span>` : ''}
-          ${e.clientProject ? `<span>Proyecto: <strong>${e.clientProject}</strong></span>` : ''}
-          ${e.receiptData ? '<span>📎 Recibo adjunto</span>' : '<span style="color:var(--warning)">Sin recibo</span>'}
-        </div>
-        <div class="btn-group">
-          <button class="btn btn-business" data-classify="business" data-id="${e.id}">Negocio</button>
-          <button class="btn btn-personal" data-classify="personal" data-id="${e.id}">Personal</button>
-          <button class="btn btn-mixed" data-classify="mixed" data-id="${e.id}">Mixto</button>
-          <button class="btn btn-unsure" data-classify="unsure" data-id="${e.id}">No estoy seguro</button>
-        </div>
-        <div class="mixed-input" id="mixed-${e.id}" hidden>
-          <div class="field">
-            <label>¿Cuál porcentaje fue utilizado para fines comerciales?</label>
-            <input type="text" inputmode="decimal" pattern="[0-9.,]*" min="1" max="99" placeholder="Ej. 60" class="amount-input" data-mixed-pct="${e.id}">
-          </div>
-          <button class="btn btn-mixed btn-sm mt-1" data-confirm-mixed="${e.id}">Confirmar porcentaje</button>
-        </div>
-      </div>
-    `).join('')}
-  `;
-}
-
-/* ─── Documentation ─── */
-function renderDocumentation() {
-  if (state.expenses.length === 0) {
-    return `
-      <div class="card empty-state">
-        <div class="icon">📋</div>
-        <h3>Sin gastos registrados</h3>
-        <p>Registre gastos para ver su estado de documentación.</p>
-      </div>
-    `;
-  }
-
-  const grouped = {
-    ready: [], 'missing-receipt': [], 'missing-purpose': [],
-    'needs-clarification': [], personal: [],
-  };
-
-  state.expenses.forEach((e) => {
-    const status = getDocStatus(e);
-    grouped[status.key].push(e);
-  });
-
-  const sections = [
-    { key: 'ready', label: 'Listo para revisión', icon: '✓' },
-    { key: 'missing-receipt', label: 'Falta recibo', icon: '📎' },
-    { key: 'missing-purpose', label: 'Falta propósito comercial', icon: '📝' },
-    { key: 'needs-clarification', label: 'Necesita aclaración', icon: '?' },
-    { key: 'personal', label: 'Gasto personal', icon: '—' },
-  ];
-
-  return sections.map((sec) => {
-    const items = grouped[sec.key];
-    if (items.length === 0) return '';
-    return `
-      <div class="mb-1">
-        <div class="section-title">
-          <span class="status-badge status-${sec.key}">${sec.icon} ${sec.label}</span>
-          <span>${items.length}</span>
-        </div>
-        <div class="grid grid-2">
-          ${items.map((e) => `
-            <div class="card">
-              <div class="flex-between">
-                <strong>${e.merchant}</strong>
-                <span class="amount" style="color:var(--expense)">${formatCurrency(e.amount)}</span>
-              </div>
-              <div class="card-hint">${formatDate(e.date)} · ${e.category}</div>
-              ${!e.receiptData && sec.key === 'missing-receipt'
-                ? '<button class="btn btn-secondary btn-sm mt-1" data-upload-receipt="' + e.id + '">Subir recibo</button>'
-                : ''}
-              ${!e.commercialPurpose?.trim() && sec.key === 'missing-purpose'
-                ? '<button class="btn btn-secondary btn-sm mt-1" data-add-purpose="' + e.id + '">Agregar propósito</button>'
-                : ''}
-              ${sec.key === 'needs-clarification'
-                ? '<button class="btn btn-secondary btn-sm mt-1" data-nav="sifting">Clasificar en SIFTING</button>'
-                : ''}
+        <div class="section-title">Current Stats</div>
+        <div class="stat-row">
+          ${ARCHETYPES.map((a) => `
+            <div class="stat-pill">
+              <span class="icon">${a.icon}</span>
+              <span class="label">${a.label}</span>
+              <span class="value">${state.archetypeStats[a.key] || 0}</span>
             </div>
           `).join('')}
         </div>
       </div>
-    `;
-  }).join('');
-}
+      <div class="card xp-banner">
+        <div class="card-label">Today's XP</div>
+        <div class="xp-value">+${todayXp}</div>
+        <p class="card-hint">Earn XP through missions, conversations, and follow-ups</p>
+      </div>
+    </div>
 
-/* ─── Calculator ─── */
-function renderCalculator() {
-  const deductions = getPossibleDeductions(state.expenses);
-  const totalIncome = getTotalIncome(state.incomes);
-  const profit = getEstimatedTaxableProfit(state.incomes, state.expenses);
-  const reserve = getEstimatedTaxReserve(state.incomes, state.expenses, state.settings.taxPercentage);
+    <div class="card mb-1">
+      <div class="section-title">Relationship Assets</div>
+      <div class="stat-row">
+        <div class="stat-pill">
+          <span class="icon">🏛</span>
+          <span class="label">Mentors</span>
+          <span class="value">${counts.mentor}</span>
+        </div>
+        <div class="stat-pill">
+          <span class="icon">🤝</span>
+          <span class="label">Friends</span>
+          <span class="value">${counts.friend}</span>
+        </div>
+        <div class="stat-pill">
+          <span class="icon">💼</span>
+          <span class="label">Clients</span>
+          <span class="value">${counts.client}</span>
+        </div>
+        <div class="stat-pill">
+          <span class="icon">❤️</span>
+          <span class="label">Romantic</span>
+          <span class="value">${counts.romantic}</span>
+        </div>
+      </div>
+    </div>
 
-  return `
     <div class="grid grid-2">
       <div class="card">
-        <div class="section-title">Porcentaje estimado de impuestos</div>
-        <div class="calculator-slider">
-          <div class="slider-value" id="tax-display">${state.settings.taxPercentage}%</div>
-          <input type="range" id="tax-slider" min="10" max="45" step="1" value="${state.settings.taxPercentage}">
-          <div class="flex-between" style="font-size:0.78rem;color:var(--text-dim)">
-            <span>10%</span><span>45%</span>
+        <div class="section-title">Quick Actions</div>
+        <div class="btn-group">
+          <button class="btn btn-primary btn-sm" data-nav="radar">Scan opportunities</button>
+          <button class="btn btn-secondary btn-sm" data-nav="mission">Start a mission</button>
+          <button class="btn btn-secondary btn-sm" data-nav="coach">Ask the coach</button>
+        </div>
+        ${state.activeMission ? `
+          <div class="contact-action mt-1">
+            Active mission: <strong>${state.activeMission.contactName}</strong>
+            <button class="btn btn-primary btn-sm mt-1" data-nav="mission">Continue →</button>
           </div>
-        </div>
-        <div class="formula-box">
-          <p><strong>Ganancia imponible estimada</strong></p>
-          <code>${formatCurrency(totalIncome)} − ${formatCurrency(deductions)} = ${formatCurrency(profit)}</code>
-          <p class="mt-1"><strong>Reserva fiscal estimada</strong></p>
-          <code>${formatCurrency(profit)} × ${state.settings.taxPercentage}% = ${formatCurrency(reserve)}</code>
-        </div>
-        <p class="legal-note">Estas cifras son estimaciones. Consulte con un profesional de impuestos para determinar su tasa real.</p>
+        ` : ''}
       </div>
       <div class="card">
-        <div class="section-title">Desglose</div>
-        <div class="progress-section">
-          <div class="progress-header">
-            <span class="progress-label">Ingresos totales</span>
-            <span class="progress-value">${formatCurrency(totalIncome)}</span>
-          </div>
+        <div class="section-title">Connection Score</div>
+        <div class="flex-between mb-1">
+          <span style="font-size:2rem;font-weight:700;font-family:var(--mono);color:var(--accent)">${score.total}/100</span>
+          <button class="btn btn-secondary btn-sm" data-nav="score">View detail →</button>
         </div>
-        <div class="progress-section">
-          <div class="progress-header">
-            <span class="progress-label">Posibles deducciones</span>
-            <span class="progress-value" style="color:var(--accent)">− ${formatCurrency(deductions)}</span>
-          </div>
-          <div class="progress-bar">
-            <div class="progress-fill accent" style="width:${totalIncome ? (deductions / totalIncome) * 100 : 0}%"></div>
-          </div>
-        </div>
-        <div class="progress-section">
-          <div class="progress-header">
-            <span class="progress-label">Ganancia imponible estimada</span>
-            <span class="progress-value" style="color:var(--info)">${formatCurrency(profit)}</span>
-          </div>
-        </div>
-        <div class="card card-hero reserve mt-1" style="border:none;background:var(--bg)">
-          <div class="card-label">Reserva fiscal estimada</div>
-          <div class="card-value reserve">${formatCurrency(reserve)}</div>
-        </div>
+        <div class="progress-bar"><div class="progress-fill accent" style="width:${score.total}%"></div></div>
+        <p class="card-hint mt-1">${score.recommendedMission}</p>
       </div>
     </div>
+
+    ${state.contacts.length > 0 ? `
+      <div class="mt-2">
+        <div class="section-title">Recent Contacts <span>needs attention</span></div>
+        <div class="grid grid-2">
+          ${[...state.contacts]
+            .sort((a, b) => (a.lastInteraction || '').localeCompare(b.lastInteraction || ''))
+            .slice(0, 4)
+            .map((c) => `
+              <div class="card contact-card">
+                <div class="contact-avatar">${getInitials(c.name)}</div>
+                <div class="contact-info">
+                  <h3>${c.name}</h3>
+                  ${(c.tags || []).map(tagBadgeHtml).join('')}
+                  <div class="contact-meta">Last seen: ${formatDaysAgo(c.lastInteraction)}</div>
+                  <div class="contact-action">${getSuggestedNextAction(c)}</div>
+                </div>
+              </div>
+            `).join('')}
+        </div>
+      </div>
+    ` : ''}
   `;
 }
 
-/* ─── Reports ─── */
-function renderReports() {
-  const years = getAvailableYears(state.incomes, state.expenses);
-  const clients = getUniqueClients(state.incomes, state.expenses);
-  const filtered = filterTransactions(state.incomes, state.expenses, reportFilters);
-  const totalRows = filtered.incomes.length + filtered.expenses.length;
+/* ─── Opportunity Radar ─── */
+function renderRadar() {
+  const result = state.lastRadarResult;
 
   return `
-    <div class="filters" id="report-filters">
-      <div class="field">
-        <label>Año</label>
-        <select name="year">
-          <option value="">Todos</option>
-          ${years.map((y) => `<option value="${y}" ${reportFilters.year == y ? 'selected' : ''}>${y}</option>`).join('')}
-        </select>
-      </div>
-      <div class="field">
-        <label>Mes</label>
-        <select name="month">
-          ${MONTHS.map((m) => `<option value="${m.value}" ${reportFilters.month == m.value ? 'selected' : ''}>${m.label}</option>`).join('')}
-        </select>
-      </div>
-      <div class="field">
-        <label>Categoría</label>
-        <select name="category">
-          <option value="">Todas</option>
-          ${CATEGORIES.map((c) => `<option value="${c}" ${reportFilters.category === c ? 'selected' : ''}>${c}</option>`).join('')}
-        </select>
-      </div>
-      <div class="field">
-        <label>Cliente / Proyecto</label>
-        <select name="client">
-          <option value="">Todos</option>
-          ${clients.map((c) => `<option value="${c}" ${reportFilters.client === c ? 'selected' : ''}>${c}</option>`).join('')}
-        </select>
-      </div>
-      <div class="field">
-        <label>Estado documentación</label>
-        <select name="docStatus">
-          ${DOC_STATUSES.map((s) => `<option value="${s.value}" ${reportFilters.docStatus === s.value ? 'selected' : ''}>${s.label}</option>`).join('')}
-        </select>
-      </div>
-      <div class="field" style="align-self:flex-end">
-        <button class="btn btn-primary btn-sm" id="export-csv" ${totalRows === 0 ? 'disabled' : ''}>Exportar CSV</button>
-      </div>
+    <div class="card radar-input-card mb-1">
+      <div class="section-title">Where are you right now?</div>
+      <form id="radar-form" class="form-grid">
+        <div class="field">
+          <label for="radar-context">Describe your situation</label>
+          <input type="text" id="radar-context" name="context"
+            placeholder="I am at a Toastmasters meeting."
+            value="${result?.context || ''}">
+        </div>
+        <button type="submit" class="btn btn-primary">Scan for opportunities</button>
+      </form>
     </div>
 
-    <div class="flex-between mb-1">
-      <span style="color:var(--text-muted);font-size:0.88rem">${totalRows} transacciones encontradas</span>
-      <span style="font-family:var(--mono);font-size:0.88rem">
-        Ingresos: <span style="color:var(--income)">${formatCurrency(getTotalIncome(filtered.incomes))}</span> ·
-        Gastos: <span style="color:var(--expense)">${formatCurrency(getTotalExpenses(filtered.expenses))}</span>
-      </span>
-    </div>
-
-    ${totalRows === 0
-      ? '<div class="card empty-state"><div class="icon">🔍</div><h3>Sin resultados</h3><p>Ajuste los filtros o registre transacciones.</p></div>'
-      : `<div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Tipo</th><th>Fecha</th><th>Descripción</th><th>Categoría</th>
-                <th>Cliente</th><th>Clasificación</th><th>Estado</th><th>Monto</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${filtered.incomes.map((i) => `
-                <tr>
-                  <td><span class="status-badge status-ready">Ingreso</span></td>
-                  <td>${formatDate(i.date)}</td>
-                  <td>${i.source}</td>
-                  <td>—</td>
-                  <td>${i.clientProject || '—'}</td>
-                  <td>—</td>
-                  <td>—</td>
-                  <td class="amount" style="color:var(--income)">${formatCurrency(i.amount)}</td>
-                </tr>
+    ${result ? `
+      <div class="card">
+        <div class="section-title">Targeting for: <span>"${result.context}"</span></div>
+        ${result.categories.map((cat) => `
+          <div class="radar-category">
+            <h4>${cat.icon} ${cat.label}</h4>
+            <div class="card-label">Talk to:</div>
+            <div class="radar-people">
+              ${cat.people.map((p) => `
+                <button type="button" class="person-chip" data-radar-person="${p.name}" data-radar-context="${result.context}">
+                  <span class="add-icon">+</span> ${p.name}
+                </button>
               `).join('')}
-              ${filtered.expenses.map((e) => {
-                const status = getDocStatus(e);
-                const classLabels = { business: 'Negocio', personal: 'Personal', mixed: 'Mixto', unsure: 'No seguro' };
-                return `
-                  <tr>
-                    <td><span class="status-badge status-missing-receipt">Gasto</span></td>
-                    <td>${formatDate(e.date)}</td>
-                    <td>${e.merchant}</td>
-                    <td>${e.category}</td>
-                    <td>${e.clientProject || '—'}</td>
-                    <td>${e.classification ? classLabels[e.classification] || e.classification : '—'}</td>
-                    <td><span class="status-badge status-${status.key}">${status.label}</span></td>
-                    <td class="amount" style="color:var(--expense)">${formatCurrency(e.amount)}</td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>`
-    }
+            </div>
+            <div class="radar-reason">Reason: "${cat.reason}"</div>
+          </div>
+        `).join('')}
+      </div>
+    ` : `
+      <div class="card empty-state">
+        <div class="icon">◎</div>
+        <h3>Enter your context</h3>
+        <p>Tell Zoom-Fu where you are and who might be worth talking to.</p>
+      </div>
+    `}
   `;
 }
 
-/* ─── Score ─── */
+/* ─── Conversation Mission ─── */
+function renderMission() {
+  const mission = state.activeMission;
+
+  if (!mission) {
+    return `
+      <div class="card mb-1">
+        <div class="section-title">Start a new mission</div>
+        <form id="mission-form" class="form-grid">
+          <div class="field">
+            <label for="mission-name">Who are you approaching?</label>
+            <input type="text" id="mission-name" name="name" placeholder="Sarah" required>
+          </div>
+          <div class="field">
+            <label for="mission-context">Context (optional)</label>
+            <input type="text" id="mission-context" name="context" placeholder="Toastmasters meeting">
+          </div>
+          <button type="submit" class="btn btn-primary">Generate mission</button>
+        </form>
+      </div>
+      <div class="card empty-state">
+        <div class="icon">🎯</div>
+        <h3>No active mission</h3>
+        <p>Enter a name above or pick someone from Opportunity Radar.</p>
+      </div>
+    `;
+  }
+
+  const allDone = mission.objectives.every((o) => o.done);
+
+  return `
+    <div class="card mission-card">
+      <div class="card-label">Mission</div>
+      <div class="mission-target">${mission.contactName}</div>
+      ${mission.context ? `<p class="card-hint">at ${mission.context}</p>` : ''}
+
+      <div class="section-title" style="justify-content:center">Learn:</div>
+      <div class="objective-list">
+        ${mission.objectives.map((obj, i) => `
+          <div class="objective-item ${obj.done ? 'done' : ''}" data-objective-idx="${i}">
+            <span class="check">${obj.done ? '✓' : ''}</span>
+            <span>${obj.label}</span>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="reward-badge">Reward: +${mission.xpReward} XP</div>
+
+      <div class="opener-box">
+        <p><strong>Suggested openers:</strong></p>
+        ${mission.openers.map((o) => `<blockquote>${o}</blockquote>`).join('')}
+      </div>
+
+      <div class="btn-group mt-2" style="justify-content:center">
+        ${allDone
+          ? `<button class="btn btn-primary" id="complete-mission">Complete mission (+${mission.xpReward} XP)</button>`
+          : `<button class="btn btn-secondary" id="cancel-mission">Cancel mission</button>`
+        }
+        <button class="btn btn-secondary btn-sm" data-nav="sifting">Go to Sifting Board →</button>
+      </div>
+    </div>
+  `;
+}
+
+/* ─── Sifting Board ─── */
+function renderSifting() {
+  const pending = state.pendingCards;
+  const zones = RELATIONSHIP_TAGS.filter((t) => t.key !== 'not-a-fit');
+  zones.push({ key: 'not-a-fit', label: 'Not a Fit', icon: '✕' });
+
+  if (pending.length === 0 && state.contacts.length === 0) {
+    return `
+      <div class="card empty-state">
+        <div class="icon">⊞</div>
+        <h3>No cards to sift</h3>
+        <p>After a conversation, add people here to classify them into your relationship database.</p>
+        <button class="btn btn-primary mt-1" id="add-sift-card">Add a person</button>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="flex-between mb-1">
+      <p class="card-hint">Drag each card into a category. Notes are saved to your CRM.</p>
+      <button class="btn btn-secondary btn-sm" id="add-sift-card">+ Add person</button>
+    </div>
+    <div class="sifting-board">
+      <div class="sifting-queue">
+        <div class="section-title">Queue <span>${pending.length} pending</span></div>
+        ${pending.length === 0
+          ? '<p class="card-hint">Queue empty — add someone after your next conversation.</p>'
+          : pending.map((card) => `
+              <div class="sift-card" draggable="true" data-card-id="${card.id}">
+                <div class="name">${card.name}</div>
+                <div class="meta">${card.context || 'No context'}</div>
+              </div>
+            `).join('')
+        }
+      </div>
+      <div>
+        <div class="section-title">Drop zones</div>
+        <div class="sifting-zones">
+          ${zones.map((z) => `
+            <div class="drop-zone ${z.key}" data-drop-tag="${z.key}">
+              <div class="zone-label">${z.icon} ${z.label}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ─── Relationship CRM ─── */
+function renderCrm() {
+  if (state.contacts.length === 0) {
+    return `
+      <div class="card empty-state">
+        <div class="icon">☰</div>
+        <h3>No contacts yet</h3>
+        <p>Classify people on the Sifting Board or add them from Opportunity Radar.</p>
+        <button class="btn btn-primary mt-1" data-nav="radar">Scan opportunities</button>
+      </div>
+    `;
+  }
+
+  const sorted = [...state.contacts].sort((a, b) => a.name.localeCompare(b.name));
+
+  return `
+    <div class="flex-between mb-1">
+      <span class="card-hint">${sorted.length} people in your database</span>
+      <button class="btn btn-secondary btn-sm" id="add-contact-btn">+ Add contact</button>
+    </div>
+    <div class="grid grid-2">
+      ${sorted.map((c) => `
+        <div class="card contact-card" data-contact-id="${c.id}">
+          <div class="contact-avatar">
+            ${c.photo ? `<img src="${c.photo}" alt="${c.name}">` : getInitials(c.name)}
+          </div>
+          <div class="contact-info">
+            <h3>${c.name}</h3>
+            ${(c.tags || []).map(tagBadgeHtml).join('')}
+            ${c.profession ? `<div class="contact-meta">${c.profession}</div>` : ''}
+            <div class="contact-meta">Last seen: ${formatDaysAgo(c.lastInteraction)}</div>
+            <div class="contact-action">
+              <strong>Suggested next action:</strong><br>
+              "${getSuggestedNextAction(c)}"
+            </div>
+            ${c.notes ? `<div class="contact-meta mt-1">${c.notes}</div>` : ''}
+            <div class="btn-group mt-1">
+              <button class="btn btn-secondary btn-sm" data-edit-contact="${c.id}">Edit</button>
+              <button class="btn btn-secondary btn-sm" data-mission-contact="${c.name}">New mission</button>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+/* ─── Zoom-Fu AI Coach ─── */
+function renderCoach() {
+  const messages = state.chatHistory;
+
+  return `
+    <div class="coach-layout">
+      <div class="card chat-window">
+        <div class="chat-messages" id="chat-messages">
+          ${messages.length === 0 ? `
+            <div class="chat-msg assistant">
+              <strong>Zoom-Fu Coach</strong><br><br>
+              I'm your connection coach. Ask me anything about approaching people, building rapport, or following up.
+            </div>
+          ` : messages.map((m) => `
+            <div class="chat-msg ${m.role}">
+              ${m.role === 'assistant' ? renderMarkdownLite(m.content) : m.content}
+            </div>
+          `).join('')}
+        </div>
+        <form id="chat-form" class="chat-input-row">
+          <input type="text" id="chat-input" placeholder="Ask your coach..." autocomplete="off">
+          <button type="submit" class="btn btn-primary btn-sm">Send</button>
+        </form>
+      </div>
+      <div class="card">
+        <div class="section-title">Quick prompts</div>
+        <div class="prompt-chips">
+          ${COACH_PROMPTS.map((p) => `
+            <button type="button" class="prompt-chip" data-coach-prompt="${p}">${p}</button>
+          `).join('')}
+        </div>
+        <button class="btn btn-secondary btn-sm btn-block mt-1" id="clear-chat">Clear chat</button>
+      </div>
+    </div>
+  `;
+}
+
+/* ─── Connection Score ─── */
 function renderScore() {
-  const score = getPreparationScore(state.incomes, state.expenses);
+  const score = getConnectionScore(state.dailyLogs, state.contacts);
+  const todayLog = getTodayLog(state);
   const circumference = 2 * Math.PI * 80;
   const offset = circumference - (score.total / 100) * circumference;
 
   return `
-    <div class="grid grid-2">
+    <div class="grid grid-2 mb-1">
       <div class="card score-hero">
         <svg width="0" height="0">
           <defs>
             <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#3dd6c3"/>
-              <stop offset="100%" stop-color="#a78bfa"/>
+              <stop offset="0%" stop-color="#f5a623"/>
+              <stop offset="100%" stop-color="#ff6b6b"/>
             </linearGradient>
           </defs>
         </svg>
@@ -705,19 +489,45 @@ function renderScore() {
           </svg>
           <div class="score-number">
             <span class="value">${score.total}</span>
-            <span class="label">de 100</span>
+            <span class="label">/ 100</span>
           </div>
         </div>
-        <h3>Puntuación de Preparación Fiscal</h3>
-        <p class="card-hint">Mide qué tan organizada está su información para la temporada fiscal</p>
+        <h3>Zoom-Fu Score</h3>
+        <p class="card-hint">Human Connection Score — updated from your daily activity</p>
       </div>
+
       <div class="card">
-        <div class="section-title">Factores de puntuación</div>
+        <div class="section-title">Today's activity log</div>
+        <form id="daily-log-form" class="daily-log-grid">
+          <div class="field">
+            <label>Conversations started</label>
+            <input type="number" name="conversationsStarted" min="0" value="${todayLog.conversationsStarted}">
+          </div>
+          <div class="field">
+            <label>Contacts collected</label>
+            <input type="number" name="contactsCollected" min="0" value="${todayLog.contactsCollected}">
+          </div>
+          <div class="field">
+            <label>Follow-ups sent</label>
+            <input type="number" name="followUpsSent" min="0" value="${todayLog.followUpsSent}">
+          </div>
+          <div class="field">
+            <label>Events attended</label>
+            <input type="number" name="eventsAttended" min="0" value="${todayLog.eventsAttended}">
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" style="grid-column:1/-1">Save today's log</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="section-title">Score factors</div>
         ${[
-          { key: 'receipts', label: 'Recibos adjuntos', color: 'income' },
-          { key: 'classified', label: 'Gastos clasificados', color: 'accent' },
-          { key: 'complete', label: 'Información completa', color: 'info' },
-          { key: 'documented', label: 'Transacciones documentadas', color: 'warning' },
+          { key: 'courage', label: 'Courage', color: 'coral' },
+          { key: 'initiation', label: 'Initiation', color: 'accent' },
+          { key: 'followUp', label: 'Follow-up', color: 'teal' },
+          { key: 'maintenance', label: 'Relationship maintenance', color: 'purple' },
         ].map((f) => `
           <div class="progress-section">
             <div class="progress-header">
@@ -730,344 +540,373 @@ function renderScore() {
           </div>
         `).join('')}
       </div>
-    </div>
-    <div class="card mt-1">
-      <div class="section-title">Recomendaciones</div>
-      ${score.recommendations.map((r) => `
-        <div class="recommendation">
-          <div class="recommendation-icon">→</div>
-          <span>${r}</span>
+
+      <div class="card">
+        <div class="section-title">Analysis</div>
+        <div class="strength-weak">
+          <div class="strong">
+            <h4>Strong</h4>
+            <ul>${score.strengths.map((s) => `<li>${s}</li>`).join('')}</ul>
+          </div>
+          <div class="weak">
+            <h4>Weak</h4>
+            <ul>${score.weaknesses.map((w) => `<li>${w}</li>`).join('')}</ul>
+          </div>
         </div>
-      `).join('')}
-      <p class="legal-note">Esta puntuación es orientativa. Consulte con un profesional de impuestos para una evaluación completa.</p>
+        <div class="recommendation mt-1">
+          <div class="recommendation-icon">→</div>
+          <span><strong>Recommended mission:</strong> ${score.recommendedMission}</span>
+        </div>
+      </div>
     </div>
   `;
 }
 
 /* ─── Render & Events ─── */
 function render() {
-  const content = $('#content');
   const views = {
     dashboard: renderDashboard,
-    income: renderIncomeForm,
-    expense: renderExpenseForm,
+    radar: renderRadar,
+    mission: renderMission,
     sifting: renderSifting,
-    documentation: renderDocumentation,
-    calculator: renderCalculator,
-    reports: renderReports,
+    crm: renderCrm,
+    coach: renderCoach,
     score: renderScore,
   };
-  content.innerHTML = views[currentView]();
+  $('#content').innerHTML = views[currentView]();
   updateSiftingBadge();
   bindViewEvents();
-  focusPrimaryAmountInput();
+  scrollChatToBottom();
 }
 
-function focusPrimaryAmountInput() {
-  const focusMap = {
-    dashboard: '#quick-income-amount',
-    income: '#income-amount',
-    expense: '#expense-amount',
-  };
-  const selector = focusMap[currentView];
-  if (!selector) return;
-  requestAnimationFrame(() => {
-    const input = $(selector);
-    if (input) input.focus();
+function scrollChatToBottom() {
+  const el = $('#chat-messages');
+  if (el) el.scrollTop = el.scrollHeight;
+}
+
+function sendCoachMessage(text) {
+  if (!text.trim()) return;
+  addChatMessage(state, 'user', text.trim());
+  const response = getCoachResponse(text, { name: state.activeMission?.contactName });
+  addChatMessage(state, 'assistant', response);
+  render();
+}
+
+function showAddSiftCardModal(prefill = {}) {
+  openModal('Add person to sift', `
+    <form id="sift-card-form" class="form-grid">
+      <div class="field">
+        <label>Name *</label>
+        <input type="text" id="sift-name" required value="${prefill.name || ''}">
+      </div>
+      <div class="field">
+        <label>Context</label>
+        <input type="text" id="sift-context" value="${prefill.context || ''}" placeholder="Met at Toastmasters">
+      </div>
+      <div class="field">
+        <label>Notes</label>
+        <textarea id="sift-notes" placeholder="Quick notes from conversation...">${prefill.notes || ''}</textarea>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Add to queue</button>
+    </form>
+  `);
+
+  $('#sift-card-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = $('#sift-name').value.trim();
+    if (!name) { showToast('Enter a name', 'error'); return; }
+    addPendingCard(state, {
+      name,
+      context: $('#sift-context').value.trim(),
+      notes: $('#sift-notes').value.trim(),
+    });
+    addXp(state, 5, `Added ${name} to sifting queue`);
+    closeModal();
+    showToast(`${name} added to sifting queue`);
+    if (currentView !== 'sifting') navigate('sifting');
+    else render();
+  });
+}
+
+function showAddContactModal() {
+  openModal('Add contact', `
+    <form id="contact-form" class="form-grid">
+      <div class="field"><label>Name *</label><input type="text" id="contact-name" required></div>
+      <div class="field">
+        <label>Tag</label>
+        <select id="contact-tag">
+          ${RELATIONSHIP_TAGS.filter((t) => t.key !== 'not-a-fit').map((t) =>
+            `<option value="${t.key}">${t.icon} ${t.label}</option>`
+          ).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Profession</label><input type="text" id="contact-profession"></div>
+      <div class="field"><label>Notes</label><textarea id="contact-notes"></textarea></div>
+      <div class="field"><label>Next action</label><input type="text" id="contact-action" placeholder="Invite to coffee"></div>
+      <button type="submit" class="btn btn-primary btn-block">Save contact</button>
+    </form>
+  `);
+
+  $('#contact-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = $('#contact-name').value.trim();
+    if (!name) return;
+    addContact(state, {
+      name,
+      tags: [$('#contact-tag').value],
+      profession: $('#contact-profession').value.trim(),
+      notes: $('#contact-notes').value.trim(),
+      nextAction: $('#contact-action').value.trim(),
+      lastInteraction: new Date().toISOString().slice(0, 10),
+    });
+    closeModal();
+    showToast(`${name} added to CRM`);
+    render();
+  });
+}
+
+function showEditContactModal(id) {
+  const contact = state.contacts.find((c) => c.id === id);
+  if (!contact) return;
+
+  openModal(`Edit ${contact.name}`, `
+    <form id="edit-contact-form" class="form-grid">
+      <div class="field"><label>Name</label><input type="text" id="edit-name" value="${contact.name}"></div>
+      <div class="field"><label>Profession</label><input type="text" id="edit-profession" value="${contact.profession || ''}"></div>
+      <div class="field"><label>Notes</label><textarea id="edit-notes">${contact.notes || ''}</textarea></div>
+      <div class="field"><label>Next action</label><input type="text" id="edit-action" value="${contact.nextAction || ''}"></div>
+      <div class="field">
+        <label>Last interaction</label>
+        <input type="date" id="edit-last" value="${contact.lastInteraction || ''}">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Save changes</button>
+      <button type="button" class="btn btn-secondary btn-block" id="delete-contact">Delete contact</button>
+    </form>
+  `);
+
+  $('#edit-contact-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    updateContact(state, id, {
+      name: $('#edit-name').value.trim(),
+      profession: $('#edit-profession').value.trim(),
+      notes: $('#edit-notes').value.trim(),
+      nextAction: $('#edit-action').value.trim(),
+      lastInteraction: $('#edit-last').value,
+    });
+    closeModal();
+    showToast('Contact updated');
+    render();
+  });
+
+  $('#delete-contact').addEventListener('click', () => {
+    deleteContact(state, id);
+    closeModal();
+    showToast('Contact removed');
+    render();
+  });
+}
+
+function showClassifyNotesModal(cardId, tag) {
+  const card = state.pendingCards.find((c) => c.id === cardId);
+  if (!card) return;
+
+  if (tag === 'not-a-fit') {
+    classifyPendingCard(state, cardId, tag);
+    showToast(`${card.name} marked as not a fit`);
+    render();
+    return;
+  }
+
+  openModal(`Classify as ${tag}`, `
+    <form id="classify-form" class="form-grid">
+      <p class="card-hint">Adding <strong>${card.name}</strong> to your CRM as <strong>${tag}</strong>.</p>
+      <div class="field">
+        <label>Notes</label>
+        <textarea id="classify-notes" placeholder="What did you learn?">${card.notes || ''}</textarea>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Save to CRM</button>
+    </form>
+  `);
+
+  $('#classify-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    classifyPendingCard(state, cardId, tag, $('#classify-notes').value.trim());
+    closeModal();
+    showToast(`${card.name} saved as ${tag}`, 'xp');
+    render();
   });
 }
 
 function bindViewEvents() {
-  const quickIncomeForm = $('#quick-income-form');
-  if (quickIncomeForm) {
-    quickIncomeForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const fd = new FormData(quickIncomeForm);
-      const amount = getFormAmount(fd);
-      if (amount == null || amount <= 0) {
-        showToast('Escriba un monto válido mayor a 0', 'error');
-        return;
-      }
-      const today = new Date().toISOString().slice(0, 10);
-      addIncome(state, {
-        amount,
-        date: today,
-        source: 'Otro',
-        clientProject: '',
-        paymentMethod: '',
-        notes: 'Registro rápido desde panel',
-      });
-      showToast(`Ingreso de ${formatCurrency(amount)} registrado`);
-      quickIncomeForm.reset();
-      render();
-    });
-  }
-
-  const quickExpenseForm = $('#quick-expense-form');
-  if (quickExpenseForm) {
-    quickExpenseForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const fd = new FormData(quickExpenseForm);
-      const amount = getFormAmount(fd);
-      if (amount == null || amount <= 0) {
-        showToast('Escriba un monto válido mayor a 0', 'error');
-        return;
-      }
-      const today = new Date().toISOString().slice(0, 10);
-      addExpense(state, {
-        amount,
-        date: today,
-        merchant: 'Gasto rápido',
-        category: 'Otros',
-        commercialPurpose: '',
-        clientProject: '',
-        commercialUsePercent: 100,
-        notes: 'Registro rápido desde panel',
-        receiptData: null,
-        receiptName: null,
-      });
-      showToast(`Gasto de ${formatCurrency(amount)} registrado — clasifíquelo en SIFTING`);
-      quickExpenseForm.reset();
-      render();
-    });
-  }
-
-  const incomeForm = $('#income-form');
-  if (incomeForm) {
-    incomeForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const fd = new FormData(incomeForm);
-      const amount = getFormAmount(fd);
-      if (amount == null || amount <= 0) {
-        showToast('Escriba un monto válido mayor a 0', 'error');
-        return;
-      }
-      addIncome(state, {
-        amount,
-        date: fd.get('date'),
-        source: fd.get('source'),
-        clientProject: fd.get('clientProject') || '',
-        paymentMethod: fd.get('paymentMethod') || '',
-        notes: fd.get('notes') || '',
-      });
-      showToast('Ingreso registrado correctamente');
-      incomeForm.reset();
-      $('#income-date').value = new Date().toISOString().slice(0, 10);
-      render();
-    });
-  }
-
-  const expenseForm = $('#expense-form');
-  if (expenseForm) {
-    const receiptInput = $('#expense-receipt');
-    if (receiptInput) {
-      receiptInput.addEventListener('change', async () => {
-        const file = receiptInput.files[0];
-        const preview = $('#receipt-preview');
-        if (!file) { preview.innerHTML = ''; return; }
-        if (file.size > 2 * 1024 * 1024) {
-          showToast('El archivo excede 2 MB', 'error');
-          receiptInput.value = '';
-          return;
-        }
-        preview.innerHTML = `<div class="receipt-preview">📎 ${file.name}</div>`;
-      });
-    }
-
-    expenseForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const fd = new FormData(expenseForm);
-      const amount = getFormAmount(fd);
-      if (amount == null || amount <= 0) {
-        showToast('Escriba un monto válido mayor a 0', 'error');
-        return;
-      }
-      let receiptData = null;
-      let receiptName = null;
-      const file = receiptInput?.files[0];
-      if (file) {
-        const result = await readFileAsBase64(file);
-        receiptData = result.data;
-        receiptName = result.name;
-      }
-      const commercialPct = parseAmount(fd.get('commercialUsePercent'));
-      addExpense(state, {
-        amount,
-        date: fd.get('date'),
-        merchant: fd.get('merchant'),
-        category: fd.get('category'),
-        commercialPurpose: fd.get('commercialPurpose') || '',
-        clientProject: fd.get('clientProject') || '',
-        commercialUsePercent: commercialPct ?? 100,
-        notes: fd.get('notes') || '',
-        receiptData,
-        receiptName,
-      });
-      showToast('Gasto registrado — clasifíquelo en SIFTING');
-      expenseForm.reset();
-      $('#expense-date').value = new Date().toISOString().slice(0, 10);
-      const pctField = $('#expense-commercial-pct');
-      if (pctField) pctField.value = '100';
-      $('#receipt-preview').innerHTML = '';
-      render();
-    });
-  }
-
-  $$('[data-edit-amount]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const type = btn.dataset.editAmount;
-      const id = btn.dataset.id;
-      const current = type === 'income'
-        ? state.incomes.find((i) => i.id === id)
-        : state.expenses.find((e) => e.id === id);
-      if (!current) return;
-
-      openModal('Editar monto', `
-        <div class="field">
-          <label>Nuevo monto</label>
-          ${amountInput('modal-amount', 'amount', { value: String(current.amount), className: 'quick-amount' })}
-        </div>
-        <button class="btn btn-primary btn-block mt-1" id="modal-amount-save">Guardar monto</button>
-      `);
-
-      $('#modal-amount-save').addEventListener('click', () => {
-        const amount = parseAmount($('#modal-amount').value);
-        if (amount == null || amount <= 0) {
-          showToast('Escriba un monto válido mayor a 0', 'error');
-          return;
-        }
-        if (type === 'income') {
-          updateIncome(state, id, { amount });
-        } else {
-          updateExpense(state, id, { amount });
-        }
-        closeModal();
-        showToast(`Monto actualizado a ${formatCurrency(amount)}`);
-        render();
-      });
-    });
-  });
-
-  $$('[data-classify]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const id = btn.dataset.id;
-      const classification = btn.dataset.classify;
-      if (classification === 'mixed') {
-        const mixedEl = $(`#mixed-${id}`);
-        mixedEl.hidden = false;
-        return;
-      }
-      updateExpense(state, id, { classification });
-      showToast(`Gasto clasificado como ${classification === 'business' ? 'Negocio' : classification === 'personal' ? 'Personal' : 'No seguro'}`);
-      render();
-    });
-  });
-
-  $$('[data-confirm-mixed]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const id = btn.dataset.confirmMixed;
-      const input = $(`[data-mixed-pct="${id}"]`);
-      const pct = parseAmount(input.value);
-      if (pct == null || pct < 1 || pct > 99) {
-        showToast('Ingrese un porcentaje entre 1 y 99', 'error');
-        return;
-      }
-      updateExpense(state, id, { classification: 'mixed', mixedCommercialPercent: pct });
-      showToast(`Gasto mixto: ${pct}% uso comercial`);
-      render();
-    });
-  });
-
-  const taxSlider = $('#tax-slider');
-  if (taxSlider) {
-    taxSlider.addEventListener('input', () => {
-      const val = Number(taxSlider.value);
-      updateSettings(state, { taxPercentage: val });
-      $('#tax-display').textContent = `${val}%`;
-      render();
-    });
-  }
-
-  const filtersEl = $('#report-filters');
-  if (filtersEl) {
-    filtersEl.querySelectorAll('select').forEach((sel) => {
-      sel.addEventListener('change', () => {
-        reportFilters = {};
-        filtersEl.querySelectorAll('select').forEach((s) => {
-          if (s.value) reportFilters[s.name] = s.value;
-        });
-        render();
-      });
-    });
-  }
-
-  const exportBtn = $('#export-csv');
-  if (exportBtn) {
-    exportBtn.addEventListener('click', () => {
-      const filtered = filterTransactions(state.incomes, state.expenses, reportFilters);
-      const csv = exportToCSV(filtered.incomes, filtered.expenses);
-      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `tax-power-mapper-${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('CSV exportado correctamente');
-    });
-  }
-
   $$('[data-nav]').forEach((btn) => {
     btn.addEventListener('click', () => navigate(btn.dataset.nav));
   });
 
-  $$('[data-upload-receipt]').forEach((btn) => {
+  const radarForm = $('#radar-form');
+  if (radarForm) {
+    radarForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const context = $('#radar-context').value.trim();
+      if (!context) { showToast('Describe where you are', 'error'); return; }
+      const result = generateOpportunityRadar(context);
+      setLastRadarResult(state, result);
+      showToast('Opportunities scanned');
+      render();
+    });
+  }
+
+  $$('[data-radar-person]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const id = btn.dataset.uploadReceipt;
-      openModal('Subir recibo', `
-        <div class="field">
-          <label>Seleccionar archivo</label>
-          <input type="file" id="modal-receipt" accept="image/*,.pdf">
-        </div>
-        <button class="btn btn-primary btn-block mt-1" id="modal-receipt-save">Guardar recibo</button>
-      `);
-      $('#modal-receipt-save').addEventListener('click', async () => {
-        const file = $('#modal-receipt').files[0];
-        if (!file) { showToast('Seleccione un archivo', 'error'); return; }
-        if (file.size > 2 * 1024 * 1024) { showToast('Máximo 2 MB', 'error'); return; }
-        const result = await readFileAsBase64(file);
-        updateExpense(state, id, { receiptData: result.data, receiptName: result.name });
-        closeModal();
-        showToast('Recibo adjuntado');
-        render();
-      });
+      const name = btn.dataset.radarPerson;
+      const context = btn.dataset.radarContext;
+      const mission = generateConversationMission(name, context);
+      setActiveMission(state, mission);
+      addPendingCard(state, { name, context, notes: '' });
+      showToast(`Mission started with ${name}`, 'xp');
+      navigate('mission');
     });
   });
 
-  $$('[data-add-purpose]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const id = btn.dataset.addPurpose;
-      openModal('Agregar propósito comercial', `
-        <div class="field">
-          <label>Propósito comercial</label>
-          <input type="text" id="modal-purpose" placeholder="Describa el uso comercial">
-        </div>
-        <button class="btn btn-primary btn-block mt-1" id="modal-purpose-save">Guardar</button>
-      `);
-      $('#modal-purpose-save').addEventListener('click', () => {
-        const purpose = $('#modal-purpose').value.trim();
-        if (!purpose) { showToast('Ingrese un propósito', 'error'); return; }
-        updateExpense(state, id, { commercialPurpose: purpose });
-        closeModal();
-        showToast('Propósito agregado');
+  const missionForm = $('#mission-form');
+  if (missionForm) {
+    missionForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = $('#mission-name').value.trim();
+      const context = $('#mission-context').value.trim();
+      if (!name) return;
+      const mission = generateConversationMission(name, context);
+      setActiveMission(state, mission);
+      showToast(`Mission generated for ${name}`);
+      render();
+    });
+  }
+
+  $$('[data-objective-idx]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const idx = Number(el.dataset.objectiveIdx);
+      if (state.activeMission) {
+        state.activeMission.objectives[idx].done = !state.activeMission.objectives[idx].done;
+        setActiveMission(state, state.activeMission);
         render();
-      });
+      }
     });
   });
+
+  const completeBtn = $('#complete-mission');
+  if (completeBtn) {
+    completeBtn.addEventListener('click', () => {
+      const mission = completeMission(state);
+      if (mission) {
+        logDailyActivity(state, {
+          ...getTodayLog(state),
+          conversationsStarted: getTodayLog(state).conversationsStarted + 1,
+        });
+        showToast(`+${mission.xpReward} XP — Mission complete!`, 'xp');
+        render();
+      }
+    });
+  }
+
+  const cancelBtn = $('#cancel-mission');
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', () => {
+      setActiveMission(state, null);
+      showToast('Mission cancelled');
+      render();
+    });
+  }
+
+  $$('.sift-card').forEach((card) => {
+    card.addEventListener('dragstart', (e) => {
+      draggedCardId = card.dataset.cardId;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      draggedCardId = null;
+    });
+  });
+
+  $$('.drop-zone').forEach((zone) => {
+    zone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      zone.classList.add('drag-over');
+    });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      if (draggedCardId) {
+        showClassifyNotesModal(draggedCardId, zone.dataset.dropTag);
+      }
+    });
+  });
+
+  const addSiftBtn = $('#add-sift-card');
+  if (addSiftBtn) {
+    addSiftBtn.addEventListener('click', () => showAddSiftCardModal());
+  }
+
+  const addContactBtn = $('#add-contact-btn');
+  if (addContactBtn) {
+    addContactBtn.addEventListener('click', () => showAddContactModal());
+  }
+
+  $$('[data-edit-contact]').forEach((btn) => {
+    btn.addEventListener('click', () => showEditContactModal(btn.dataset.editContact));
+  });
+
+  $$('[data-mission-contact]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const mission = generateConversationMission(btn.dataset.missionContact);
+      setActiveMission(state, mission);
+      navigate('mission');
+    });
+  });
+
+  const chatForm = $('#chat-form');
+  if (chatForm) {
+    chatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = $('#chat-input');
+      sendCoachMessage(input.value);
+      input.value = '';
+    });
+  }
+
+  $$('[data-coach-prompt]').forEach((btn) => {
+    btn.addEventListener('click', () => sendCoachMessage(btn.dataset.coachPrompt));
+  });
+
+  const clearChatBtn = $('#clear-chat');
+  if (clearChatBtn) {
+    clearChatBtn.addEventListener('click', () => {
+      clearChatHistory(state);
+      showToast('Chat cleared');
+      render();
+    });
+  }
+
+  const dailyLogForm = $('#daily-log-form');
+  if (dailyLogForm) {
+    dailyLogForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fd = new FormData(dailyLogForm);
+      logDailyActivity(state, {
+        conversationsStarted: Number(fd.get('conversationsStarted')) || 0,
+        contactsCollected: Number(fd.get('contactsCollected')) || 0,
+        followUpsSent: Number(fd.get('followUpsSent')) || 0,
+        eventsAttended: Number(fd.get('eventsAttended')) || 0,
+      });
+      showToast('Daily log saved — score updated');
+      render();
+    });
+  }
 }
 
 function init() {
-  $('#current-date').textContent = new Date().toLocaleDateString('es-MX', {
+  $('#current-date').textContent = new Date().toLocaleDateString('en-US', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
 
@@ -1086,6 +925,7 @@ function init() {
     el.addEventListener('click', closeModal);
   });
 
+  updateTopbarXp();
   render();
 }
 

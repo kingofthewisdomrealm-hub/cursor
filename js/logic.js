@@ -1,287 +1,341 @@
-export function parseAmount(value) {
-  if (value == null || value === '') return null;
-  const normalized = String(value).trim().replace(/\s/g, '').replace(/,/g, '.');
-  const parsed = parseFloat(normalized);
-  if (!Number.isFinite(parsed) || parsed < 0) return null;
-  return parsed;
-}
-
-export function formatCurrency(amount) {
-  const safe = Number(amount);
-  if (!Number.isFinite(safe)) return '$0.00';
-  return new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
-    minimumFractionDigits: 2,
-  }).format(safe);
-}
-
 export function formatDate(dateStr) {
   if (!dateStr) return '—';
   const d = new Date(dateStr + 'T12:00:00');
-  return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+  return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export function getTotalIncome(incomes) {
-  return incomes.reduce((sum, i) => sum + Number(i.amount || 0), 0);
+export function daysSince(dateStr) {
+  if (!dateStr) return null;
+  const then = new Date(dateStr + 'T12:00:00');
+  const now = new Date();
+  return Math.floor((now - then) / (1000 * 60 * 60 * 24));
 }
 
-export function getTotalExpenses(expenses) {
-  return expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+export function formatDaysAgo(dateStr) {
+  const days = daysSince(dateStr);
+  if (days == null) return 'Never';
+  if (days === 0) return 'Today';
+  if (days === 1) return '1 day ago';
+  return `${days} days ago`;
 }
 
-export function getDeductibleAmount(expense) {
-  const amount = Number(expense.amount || 0);
-  if (expense.classification === 'business') return amount;
-  if (expense.classification === 'mixed') {
-    const pct = Number(expense.mixedCommercialPercent ?? expense.commercialUsePercent ?? 0);
-    return amount * (pct / 100);
-  }
-  return 0;
+export function getRelationshipCounts(contacts) {
+  const counts = { mentor: 0, friend: 0, client: 0, romantic: 0, collaborator: 0 };
+  contacts.forEach((c) => {
+    (c.tags || []).forEach((tag) => {
+      if (counts[tag] != null) counts[tag]++;
+    });
+  });
+  return counts;
 }
 
-export function getPossibleDeductions(expenses) {
-  return expenses.reduce((sum, e) => sum + getDeductibleAmount(e), 0);
+export function getDormantContacts(contacts, thresholdDays = 14) {
+  return contacts.filter((c) => {
+    const days = daysSince(c.lastInteraction);
+    return days != null && days >= thresholdDays;
+  });
 }
 
-export function getEstimatedTaxableProfit(incomes, expenses) {
-  return getTotalIncome(incomes) - getPossibleDeductions(expenses);
+const RADAR_PROFILES = {
+  toastmasters: {
+    mentors: { names: ['John', 'Sarah', 'David'], reason: 'They own businesses and lead teams.' },
+    friends: { names: ['Mike', 'Carlos', 'Priya'], reason: 'Similar interests in personal growth and communication.' },
+    clients: { names: ['Rebecca', 'James'], reason: 'Needs public speaking help or presentation coaching.' },
+  },
+  networking: {
+    mentors: { names: ['Elena', 'Marcus', 'Dr. Kim'], reason: 'Senior leaders open to sharing experience.' },
+    friends: { names: ['Alex', 'Jordan', 'Sam'], reason: 'Peers in your industry building community.' },
+    clients: { names: ['Taylor', 'Morgan'], reason: 'Potential buyers for your skills or services.' },
+  },
+  conference: {
+    mentors: { names: ['Dr. Patel', 'Lisa Chen', 'Robert'], reason: 'Speakers and panelists with deep expertise.' },
+    friends: { names: ['Nina', 'Chris', 'Dev'], reason: 'Attendees with shared professional interests.' },
+    clients: { names: ['Amanda', 'Victor'], reason: 'Decision-makers exploring solutions you offer.' },
+  },
+  gym: {
+    mentors: { names: ['Coach Ray', 'Diana'], reason: 'Fitness professionals with business experience.' },
+    friends: { names: ['Tyler', 'Jess', 'Omar'], reason: 'Regulars with compatible schedules and energy.' },
+    clients: { names: [], reason: '' },
+  },
+  coffee: {
+    mentors: { names: ['Frank', 'Helen'], reason: 'Entrepreneurs who work from cafés.' },
+    friends: { names: ['Jamie', 'Riley', 'Casey'], reason: 'Creative types and remote workers nearby.' },
+    clients: { names: ['Morgan'], reason: 'Freelancers who might need your services.' },
+  },
+  party: {
+    mentors: { names: ['Richard', 'Susan'], reason: 'Well-connected hosts and community leaders.' },
+    friends: { names: ['Dani', 'Leo', 'Zoe', 'Kai'], reason: 'Social energy matches yours — easy rapport.' },
+    clients: { names: [], reason: '' },
+    romantic: { names: ['Emma', 'Lucas'], reason: 'Shared values and mutual attraction potential.' },
+  },
+  default: {
+    mentors: { names: ['Alex', 'Jordan'], reason: 'People ahead of you on a path you admire.' },
+    friends: { names: ['Sam', 'Taylor', 'Morgan'], reason: 'Compatible interests and conversational chemistry.' },
+    clients: { names: ['Casey'], reason: 'Someone with a problem you can solve.' },
+  },
+};
+
+function detectContextProfile(context) {
+  const lower = context.toLowerCase();
+  if (/toastmaster|public speak|speech/.test(lower)) return 'toastmasters';
+  if (/network|mixer|meetup|professional/.test(lower)) return 'networking';
+  if (/conference|summit|workshop|seminar/.test(lower)) return 'conference';
+  if (/gym|fitness|workout|crossfit|yoga/.test(lower)) return 'gym';
+  if (/coffee|café|cafe|cowork/.test(lower)) return 'coffee';
+  if (/party|wedding|social|bar|dinner/.test(lower)) return 'party';
+  return 'default';
 }
 
-export function getEstimatedTaxReserve(incomes, expenses, taxPercentage) {
-  const profit = getEstimatedTaxableProfit(incomes, expenses);
-  return Math.max(0, profit * (taxPercentage / 100));
+export function generateOpportunityRadar(context) {
+  const profile = RADAR_PROFILES[detectContextProfile(context)];
+  const result = { context, generatedAt: new Date().toISOString(), categories: [] };
+
+  const categoryDefs = [
+    { key: 'mentors', label: 'Potential Mentors', icon: '🏛' },
+    { key: 'friends', label: 'Potential Friends', icon: '🤝' },
+    { key: 'clients', label: 'Potential Clients', icon: '💼' },
+    { key: 'romantic', label: 'Potential Romantic', icon: '❤️' },
+  ];
+
+  categoryDefs.forEach(({ key, label, icon }) => {
+    const data = profile[key];
+    if (data && data.names.length > 0) {
+      result.categories.push({
+        key,
+        label,
+        icon,
+        people: data.names.map((name) => ({ name })),
+        reason: data.reason,
+      });
+    }
+  });
+
+  return result;
 }
 
-export function getUnclassifiedExpenses(expenses) {
-  return expenses.filter((e) => !e.classification);
-}
+export function generateConversationMission(contactName, context = '') {
+  const objectives = [
+    { key: 'profession', label: 'Their profession', done: false },
+    { key: 'goal', label: 'Their biggest goal', done: false },
+    { key: 'challenge', label: 'Their biggest challenge', done: false },
+  ];
 
-export function getDocStatus(expense) {
-  if (expense.classification === 'personal') {
-    return { key: 'personal', label: 'Gasto personal' };
-  }
-  if (!expense.classification || expense.classification === 'unsure') {
-    return { key: 'needs-clarification', label: 'Necesita aclaración' };
-  }
-  if (expense.classification === 'mixed' && expense.mixedCommercialPercent == null) {
-    return { key: 'needs-clarification', label: 'Necesita aclaración' };
-  }
-  if (!expense.receiptData && (expense.classification === 'business' || expense.classification === 'mixed')) {
-    return { key: 'missing-receipt', label: 'Falta recibo' };
-  }
-  if (!expense.commercialPurpose?.trim() && (expense.classification === 'business' || expense.classification === 'mixed')) {
-    return { key: 'missing-purpose', label: 'Falta propósito comercial' };
-  }
-  return { key: 'ready', label: 'Listo para revisión' };
-}
-
-export function getMissingReceiptsCount(expenses) {
-  return expenses.filter((e) => {
-    const status = getDocStatus(e);
-    return status.key === 'missing-receipt';
-  }).length;
-}
-
-export function isExpenseComplete(expense) {
-  const status = getDocStatus(expense);
-  return status.key === 'ready' || status.key === 'personal';
-}
-
-export function getPreparationScore(incomes, expenses) {
-  const allTransactions = incomes.length + expenses.length;
-  if (allTransactions === 0) {
-    return {
-      total: 0,
-      factors: {
-        receipts: 0,
-        classified: 0,
-        complete: 0,
-        documented: 0,
-      },
-      recommendations: ['Comience registrando sus primeros ingresos y gastos.'],
-    };
-  }
-
-  const deductibleExpenses = expenses.filter(
-    (e) => e.classification === 'business' || e.classification === 'mixed'
-  );
-  const receiptsScore =
-    deductibleExpenses.length === 0
-      ? 100
-      : (deductibleExpenses.filter((e) => e.receiptData).length / deductibleExpenses.length) * 100;
-
-  const classifiedScore =
-    expenses.length === 0 ? 100 : (expenses.filter((e) => e.classification).length / expenses.length) * 100;
-
-  const completeScore =
-    allTransactions === 0
-      ? 0
-      : ((incomes.filter((i) => i.amount && i.date && i.source).length +
-          expenses.filter((e) => e.amount && e.date && e.merchant && e.category).length) /
-          allTransactions) *
-        100;
-
-  const documentedCount =
-    incomes.filter((i) => i.amount && i.date && i.source && i.clientProject).length +
-    expenses.filter((e) => isExpenseComplete(e)).length;
-  const documentedScore = (documentedCount / allTransactions) * 100;
-
-  const total = Math.round(
-    receiptsScore * 0.3 + classifiedScore * 0.25 + completeScore * 0.2 + documentedScore * 0.25
-  );
-
-  const recommendations = [];
-  if (receiptsScore < 80) {
-    recommendations.push('Adjunte recibos a sus gastos de negocio para respaldar posibles deducciones.');
-  }
-  if (classifiedScore < 100) {
-    recommendations.push('Clasifique todos sus gastos en el motor SIFTING (Negocio, Personal, Mixto).');
-  }
-  if (completeScore < 90) {
-    recommendations.push('Complete la información faltante en sus transacciones (fechas, categorías, fuentes).');
-  }
-  if (documentedScore < 75) {
-    recommendations.push('Agregue propósito comercial y datos de cliente/proyecto a más transacciones.');
-  }
-  if (recommendations.length === 0) {
-    recommendations.push('¡Excelente! Su documentación fiscal está muy bien organizada. Consulte con un profesional de impuestos.');
-  }
+  const openers = [
+    `Hi ${contactName}, I noticed we share an interest in growth. What do you do professionally?`,
+    `Great to meet you, ${contactName}! What's the biggest goal you're working toward right now?`,
+    `${contactName}, I'm curious — what's the toughest challenge you're facing in your work or life?`,
+  ];
 
   return {
-    total,
-    factors: {
-      receipts: Math.round(receiptsScore),
-      classified: Math.round(classifiedScore),
-      complete: Math.round(completeScore),
-      documented: Math.round(documentedScore),
-    },
-    recommendations,
+    id: `${Date.now()}-mission`,
+    contactName,
+    context,
+    objectives,
+    openers,
+    xpReward: 25,
+    createdAt: new Date().toISOString(),
   };
 }
 
-export function getMonthlyChartData(incomes, expenses, months = 6) {
-  const now = new Date();
-  const data = [];
+export function getSuggestedNextAction(contact) {
+  if (contact.nextAction?.trim()) return contact.nextAction;
 
-  for (let i = months - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const year = d.getFullYear();
-    const month = d.getMonth();
-    const label = d.toLocaleDateString('es-MX', { month: 'short' });
+  const days = daysSince(contact.lastInteraction);
+  const tag = (contact.tags || [])[0];
 
-    const monthIncome = incomes
-      .filter((inc) => {
-        const id = new Date(inc.date + 'T12:00:00');
-        return id.getFullYear() === year && id.getMonth() === month;
-      })
-      .reduce((s, inc) => s + Number(inc.amount), 0);
-
-    const monthExpense = expenses
-      .filter((exp) => {
-        const ed = new Date(exp.date + 'T12:00:00');
-        return ed.getFullYear() === year && ed.getMonth() === month;
-      })
-      .reduce((s, exp) => s + Number(exp.amount), 0);
-
-    data.push({ label, income: monthIncome, expense: monthExpense });
+  if (days != null && days >= 14) {
+    return `Reconnect — it's been ${days} days since you last talked.`;
   }
 
-  return data;
+  const actions = {
+    mentor: 'Ask for advice on a specific challenge.',
+    friend: 'Invite to an activity you both enjoy.',
+    client: 'Follow up on how you can help them.',
+    romantic: 'Suggest a low-pressure coffee or walk.',
+    collaborator: 'Propose a small joint project or brainstorm.',
+  };
+
+  return actions[tag] || 'Send a thoughtful check-in message.';
 }
 
-export function filterTransactions(incomes, expenses, filters) {
-  let filteredIncomes = [...incomes];
-  let filteredExpenses = [...expenses];
+export function getConnectionScore(dailyLogs, contacts) {
+  const recentLogs = dailyLogs.slice(-7);
+  const totals = recentLogs.reduce(
+    (acc, log) => ({
+      conversationsStarted: acc.conversationsStarted + (log.conversationsStarted || 0),
+      contactsCollected: acc.contactsCollected + (log.contactsCollected || 0),
+      followUpsSent: acc.followUpsSent + (log.followUpsSent || 0),
+      eventsAttended: acc.eventsAttended + (log.eventsAttended || 0),
+    }),
+    { conversationsStarted: 0, contactsCollected: 0, followUpsSent: 0, eventsAttended: 0 }
+  );
 
-  if (filters.year) {
-    const y = Number(filters.year);
-    filteredIncomes = filteredIncomes.filter((i) => new Date(i.date + 'T12:00:00').getFullYear() === y);
-    filteredExpenses = filteredExpenses.filter((e) => new Date(e.date + 'T12:00:00').getFullYear() === y);
-  }
+  const dormant = getDormantContacts(contacts, 14).length;
+  const totalContacts = contacts.length;
 
-  if (filters.month) {
-    const m = Number(filters.month) - 1;
-    filteredIncomes = filteredIncomes.filter((i) => new Date(i.date + 'T12:00:00').getMonth() === m);
-    filteredExpenses = filteredExpenses.filter((e) => new Date(e.date + 'T12:00:00').getMonth() === m);
-  }
+  const courage = Math.min(100, totals.conversationsStarted * 15 + totals.eventsAttended * 10);
+  const initiation = Math.min(100, totals.contactsCollected * 20 + totals.conversationsStarted * 10);
+  const followUp = Math.min(100, totals.followUpsSent * 25);
+  const maintenance = totalContacts === 0
+    ? 0
+    : Math.max(0, 100 - dormant * (100 / Math.max(totalContacts, 1)) * 1.5);
 
-  if (filters.category) {
-    filteredExpenses = filteredExpenses.filter((e) => e.category === filters.category);
-    filteredIncomes = [];
-  }
+  const total = Math.round(
+    courage * 0.25 + initiation * 0.25 + followUp * 0.25 + maintenance * 0.25
+  );
 
-  if (filters.client) {
-    filteredIncomes = filteredIncomes.filter((i) => i.clientProject === filters.client);
-    filteredExpenses = filteredExpenses.filter((e) => e.clientProject === filters.client);
-  }
+  const strengths = [];
+  const weaknesses = [];
 
-  if (filters.project) {
-    filteredIncomes = filteredIncomes.filter((i) => i.clientProject === filters.project);
-    filteredExpenses = filteredExpenses.filter((e) => e.clientProject === filters.project);
-  }
-
-  if (filters.docStatus) {
-    filteredExpenses = filteredExpenses.filter((e) => getDocStatus(e).key === filters.docStatus);
-    filteredIncomes = [];
-  }
-
-  return { incomes: filteredIncomes, expenses: filteredExpenses };
-}
-
-export function exportToCSV(incomes, expenses) {
-  const rows = [
-    ['Tipo', 'Monto', 'Fecha', 'Descripción', 'Categoría/Fuente', 'Cliente/Proyecto', 'Clasificación', 'Estado documentación', 'Notas'],
+  const factors = [
+    { key: 'courage', label: 'Courage', score: courage },
+    { key: 'initiation', label: 'Initiation', score: initiation },
+    { key: 'followUp', label: 'Follow-up', score: followUp },
+    { key: 'maintenance', label: 'Relationship maintenance', score: maintenance },
   ];
 
-  incomes.forEach((i) => {
-    rows.push([
-      'Ingreso',
-      i.amount,
-      i.date,
-      i.source,
-      i.source,
-      i.clientProject || '',
-      '—',
-      '—',
-      i.notes || '',
-    ]);
+  factors.sort((a, b) => b.score - a.score);
+  factors.slice(0, 2).forEach((f) => {
+    if (f.score >= 50) strengths.push(f.label);
+  });
+  factors.slice(-2).forEach((f) => {
+    if (f.score < 60) weaknesses.push(f.label);
   });
 
-  expenses.forEach((e) => {
-    const status = getDocStatus(e);
-    rows.push([
-      'Gasto',
-      e.amount,
-      e.date,
-      e.merchant,
-      e.category,
-      e.clientProject || '',
-      e.classification || 'Sin clasificar',
-      status.label,
-      e.notes || '',
-    ]);
-  });
+  if (strengths.length === 0) strengths.push('Getting started');
+  if (weaknesses.length === 0 && total < 90) weaknesses.push('Consistency');
 
-  return rows
-    .map((row) =>
-      row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-    )
-    .join('\n');
+  let recommendedMission = 'Start one conversation today at your next event.';
+  if (dormant >= 3) {
+    recommendedMission = `Reconnect with ${Math.min(dormant, 3)} dormant contacts.`;
+  } else if (totals.followUpsSent < 2) {
+    recommendedMission = 'Send 3 follow-up messages to people you met recently.';
+  } else if (totals.eventsAttended < 1) {
+    recommendedMission = 'Attend one event this week and start 2 conversations.';
+  }
+
+  return {
+    total: Math.min(100, total),
+    factors: {
+      courage: Math.round(courage),
+      initiation: Math.round(initiation),
+      followUp: Math.round(followUp),
+      maintenance: Math.round(maintenance),
+    },
+    strengths,
+    weaknesses,
+    recommendedMission,
+    dormantCount: dormant,
+  };
 }
 
-export function getUniqueClients(incomes, expenses) {
-  const set = new Set();
-  incomes.forEach((i) => i.clientProject && set.add(i.clientProject));
-  expenses.forEach((e) => e.clientProject && set.add(e.clientProject));
-  return [...set].sort();
+const COACH_RESPONSES = [
+  {
+    patterns: [/what should i say|opening line|start.*conversation|approach/i],
+    response: (ctx) => `**Opening move for ${ctx.name || 'them'}:**
+
+1. Smile and make eye contact — confidence before words.
+2. Use context: "First time at [event]?" or "How do you know [host]?"
+3. Listen more than you talk in the first 60 seconds.
+
+**Sample opener:**
+"Hey, I'm [your name]. I noticed you [specific observation]. What brought you here tonight?"`,
+  },
+  {
+    patterns: [/what questions|questions should i ask|ask them/i],
+    response: () => `**High-value questions (pick 2–3):**
+
+- "What are you working on that excites you right now?"
+- "What's the hardest part of that?"
+- "How did you get into [their field]?"
+- "If you could solve one problem this year, what would it be?"
+- "Who's been most helpful on your journey?"
+
+**Pro tip:** Follow their energy. If they light up on a topic, go deeper there.`,
+  },
+  {
+    patterns: [/deepen rapport|build rapport|connect deeper|connection/i],
+    response: () => `**Rapport accelerators:**
+
+1. **Mirror** — Match their pace and energy (not mimicry).
+2. **Validate** — "That makes sense" or "I can see why that's important."
+3. **Share briefly** — One vulnerable or honest detail from your life.
+4. **Find overlap** — Shared interests, values, or struggles.
+5. **Be present** — Put the phone away. Use their name once.
+
+Rapport isn't performance — it's genuine curiosity.`,
+  },
+  {
+    patterns: [/follow up|follow-up|after.*conversation|next step/i],
+    response: (ctx) => `**Follow-up framework for ${ctx.name || 'your new contact'}:**
+
+**Within 24 hours:**
+"Great meeting you at [event]! I enjoyed our chat about [specific topic]. Would love to continue the conversation."
+
+**Within 1 week (if no reply):**
+One value-add message — share an article, intro, or resource related to what they mentioned.
+
+**Long-term:**
+- Mentors: Ask for specific advice, not generic "pick your brain."
+- Friends: Invite to something low-stakes.
+- Clients: Offer a clear next step to help with their challenge.
+
+**Rule:** Reference something *they* said. Generic messages get ignored.`,
+  },
+  {
+    patterns: [/nervous|anxious|scared|introvert|shy/i],
+    response: () => `**Reframe the nerves:**
+
+You're not trying to impress everyone — you're looking for *one* good conversation.
+
+**Micro-goals:**
+- Goal 1: Say hello to one person.
+- Goal 2: Ask one question and listen fully.
+- Goal 3: Exchange one piece of contact info.
+
+**Breath:** 4 seconds in, 6 seconds out before you approach.
+
+Courage is a skill. Every conversation is a rep. +10 Warrior XP awaits.`,
+  },
+];
+
+export function getCoachResponse(question, context = {}) {
+  for (const entry of COACH_RESPONSES) {
+    if (entry.patterns.some((p) => p.test(question))) {
+      return entry.response(context);
+    }
+  }
+
+  return `**Zoom-Fu Coach:**
+
+Great question. Here's a general framework:
+
+1. **Clarify your intent** — Mentor? Friend? Client? Know before you approach.
+2. **Lead with curiosity** — People love talking about what matters to them.
+3. **Close with clarity** — "I'd love to stay in touch — what's the best way to reach you?"
+
+Try asking me:
+- "What should I say?"
+- "What questions should I ask?"
+- "How do I deepen rapport?"
+- "How do I follow up?"`;
 }
 
-export function getAvailableYears(incomes, expenses) {
-  const years = new Set();
-  [...incomes, ...expenses].forEach((t) => {
-    years.add(new Date(t.date + 'T12:00:00').getFullYear());
-  });
-  if (years.size === 0) years.add(new Date().getFullYear());
-  return [...years].sort((a, b) => b - a);
+export function getInitials(name) {
+  return (name || '?')
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+export function renderMarkdownLite(text) {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`)
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    .replace(/^(.+)$/s, '<p>$1</p>');
 }

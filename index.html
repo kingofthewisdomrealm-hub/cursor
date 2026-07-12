@@ -1,61 +1,60 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tax Power Mapper — Mapa de Poder Fiscal</title>
+  <title>Zoom-Fu — Human Connection Operating System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="app">
     <aside class="sidebar" id="sidebar">
       <div class="brand">
-        <div class="brand-icon" aria-hidden="true">◈</div>
+        <div class="brand-icon" aria-hidden="true">⚡</div>
         <div>
-          <h1>Tax Power Mapper</h1>
-          <p>Mapa de Poder Fiscal</p>
+          <h1>Zoom-Fu</h1>
+          <p>Human Connection OS</p>
         </div>
       </div>
+      <p class="core-question">"What should I do next to build the life I want through people?"</p>
       <nav class="nav" id="main-nav">
         <button class="nav-item active" data-view="dashboard">
-          <span class="nav-icon">▣</span> Panel
+          <span class="nav-icon">▣</span> Dashboard
         </button>
-        <button class="nav-item" data-view="income">
-          <span class="nav-icon">＋</span> Ingreso
+        <button class="nav-item" data-view="radar">
+          <span class="nav-icon">◎</span> Opportunity Radar
         </button>
-        <button class="nav-item" data-view="expense">
-          <span class="nav-icon">－</span> Gasto
+        <button class="nav-item" data-view="mission">
+          <span class="nav-icon">🎯</span> Conversation Mission
         </button>
         <button class="nav-item" data-view="sifting">
-          <span class="nav-icon">◎</span> SIFTING
+          <span class="nav-icon">⊞</span> Sifting Board
           <span class="badge" id="sifting-badge" hidden>0</span>
         </button>
-        <button class="nav-item" data-view="documentation">
-          <span class="nav-icon">☰</span> Documentación
+        <button class="nav-item" data-view="crm">
+          <span class="nav-icon">☰</span> Relationship CRM
         </button>
-        <button class="nav-item" data-view="calculator">
-          <span class="nav-icon">％</span> Reserva Fiscal
-        </button>
-        <button class="nav-item" data-view="reports">
-          <span class="nav-icon">↗</span> Reportes
+        <button class="nav-item" data-view="coach">
+          <span class="nav-icon">💬</span> Zoom-Fu AI
         </button>
         <button class="nav-item" data-view="score">
-          <span class="nav-icon">★</span> Preparación
+          <span class="nav-icon">★</span> Connection Score
         </button>
       </nav>
-      <p class="disclaimer">Esta herramienta no constituye asesoría legal ni fiscal. Consulte con un profesional de impuestos.</p>
+      <p class="disclaimer">Build the life you want — one conversation at a time.</p>
     </aside>
 
     <div class="main">
       <header class="topbar">
-        <button class="menu-toggle" id="menu-toggle" aria-label="Abrir menú">☰</button>
+        <button class="menu-toggle" id="menu-toggle" aria-label="Open menu">☰</button>
         <div class="topbar-title">
-          <h2 id="view-title">Panel Principal</h2>
-          <p id="view-subtitle">Centro de control financiero</p>
+          <h2 id="view-title">Dashboard</h2>
+          <p id="view-subtitle">Your connection command center</p>
         </div>
+        <div class="topbar-xp" id="topbar-xp"></div>
         <div class="topbar-date" id="current-date"></div>
       </header>
 
@@ -70,7 +69,7 @@
     <div class="modal-panel" role="dialog" aria-modal="true">
       <div class="modal-header">
         <h3 id="modal-title"></h3>
-        <button class="modal-close" data-close-modal aria-label="Cerrar">×</button>
+        <button class="modal-close" data-close-modal aria-label="Close">×</button>
       </div>
       <div class="modal-body" id="modal-body"></div>
     </div>
