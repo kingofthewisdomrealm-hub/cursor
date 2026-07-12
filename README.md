@@ -31,9 +31,17 @@ Open [http://localhost:5173](http://localhost:5173).
 
 ## Play online
 
-**https://kingofthewisdomrealm-hub.github.io/cursor/**
+**Live preview:** https://benchmark-sole-filter-group.trycloudflare.com
 
-(Deployed automatically via GitHub Pages when changes are pushed.)
+**Permanent URL (one-time setup):** https://kingofthewisdomrealm-hub.github.io/cursor/
+
+The game is already deployed to the `gh-pages` branch. To activate the permanent URL:
+
+1. Open [Repository Settings → Pages](https://github.com/kingofthewisdomrealm-hub/cursor/settings/pages)
+2. Set **Source** to **Deploy from a branch**
+3. Choose branch **`gh-pages`**, folder **`/ (root)`**, then **Save**
+
+The site will be live at the permanent URL within ~1 minute.
 
 ## Build
 
