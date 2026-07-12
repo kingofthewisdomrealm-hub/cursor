@@ -29,6 +29,12 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173).
 
+## Play online
+
+**https://kingofthewisdomrealm-hub.github.io/cursor/**
+
+(Deployed automatically via GitHub Pages when changes are pushed.)
+
 ## Build
 
 ```bash
