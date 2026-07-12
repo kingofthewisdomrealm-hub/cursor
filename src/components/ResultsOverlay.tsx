@@ -11,6 +11,7 @@ export function ResultsOverlay() {
   const dismissResults = useGameStore((s) => s.dismissResults);
   const newlyUnlockedIds = useGameStore((s) => s.newlyUnlockedIds);
   const clearNewlyUnlocked = useGameStore((s) => s.clearNewlyUnlocked);
+  const generatedTechnique = useGameStore((s) => s.generatedTechnique);
 
   if (!lastResult) return null;
 
@@ -51,7 +52,8 @@ export function ResultsOverlay() {
                   <span className="text-card-obs font-semibold">Obs:</span> {obs.text}
                 </p>
                 <p className="mt-2">
-                  <span className="text-card-tech font-semibold">Tech:</span> {tech.text}
+                  <span className="text-card-tech font-semibold">Tech:</span>{' '}
+                  {generatedTechnique ?? tech.text}
                 </p>
                 <p className="mt-2">
                   <span className="text-card-punch font-semibold">Punch:</span> {punch.text}

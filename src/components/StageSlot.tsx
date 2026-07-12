@@ -12,8 +12,81 @@ interface StageSlotProps {
   isOver: boolean;
 }
 
+function TechniqueGenerating() {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="flex flex-col items-center gap-2 px-2 py-3"
+    >
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+        className="text-2xl"
+      >
+        ✨
+      </motion.div>
+      <p className="text-center text-xs font-medium text-white/70">AI generating technique...</p>
+      <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
+        <motion.div
+          className="h-full bg-card-tech"
+          animate={{ x: ['-100%', '100%'] }}
+          transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ width: '50%' }}
+        />
+      </div>
+    </motion.div>
+  );
+}
+
+function TechniqueGenerated({
+  techniqueName,
+  generatedText,
+  onRegenerate,
+  onRemove,
+}: {
+  techniqueName: string;
+  generatedText: string;
+  onRegenerate: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ scale: 0.5, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      className="w-full cursor-pointer rounded-xl border-2 border-white/20 bg-card-tech p-3 shadow-lg"
+      onClick={onRemove}
+    >
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-white/70">
+          ✨ AI Generated
+        </span>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRegenerate();
+          }}
+          className="rounded px-1.5 py-0.5 text-[10px] text-white/60 hover:bg-white/10 hover:text-white"
+          title="Regenerate"
+        >
+          🔄
+        </button>
+      </div>
+      <p className="text-xs font-medium leading-snug text-white">{generatedText}</p>
+      <p className="mt-1.5 text-[10px] text-white/40 italic">{techniqueName}</p>
+    </motion.div>
+  );
+}
+
 export function StageSlot({ slotType, cardId, isOver }: StageSlotProps) {
   const setStageSlot = useGameStore((s) => s.setStageSlot);
+  const generatedTechnique = useGameStore((s) => s.generatedTechnique);
+  const isGeneratingTechnique = useGameStore((s) => s.isGeneratingTechnique);
+  const techniqueError = useGameStore((s) => s.techniqueError);
+  const regenerateTechnique = useGameStore((s) => s.regenerateTechnique);
+  const stage = useGameStore((s) => s.stage);
+
   const { setNodeRef, isOver: isDroppableOver } = useDroppable({
     id: `slot-${slotType}`,
     data: { slotType },
@@ -22,6 +95,9 @@ export function StageSlot({ slotType, cardId, isOver }: StageSlotProps) {
   const card = cardId ? getCardById(cardId) : null;
   const active = isOver || isDroppableOver;
   const typeColor = CARD_TYPE_COLORS[slotType];
+  const isTechnique = slotType === 'technique';
+  const hasObservation = !!stage.observation;
+  const showTechniqueGenerate = isTechnique && card && hasObservation;
 
   return (
     <div
@@ -40,7 +116,33 @@ export function StageSlot({ slotType, cardId, isOver }: StageSlotProps) {
 
       <div className="flex flex-1 items-center justify-center p-2">
         <AnimatePresence mode="wait">
-          {card ? (
+          {card && showTechniqueGenerate && isGeneratingTechnique ? (
+            <TechniqueGenerating key="generating" />
+          ) : card && showTechniqueGenerate && techniqueError ? (
+            <motion.div
+              key="error"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center"
+            >
+              <p className="text-xs text-red-400">{techniqueError}</p>
+              <button
+                type="button"
+                onClick={() => regenerateTechnique()}
+                className="mt-2 text-xs text-white/60 underline hover:text-white"
+              >
+                Retry
+              </button>
+            </motion.div>
+          ) : card && showTechniqueGenerate && generatedTechnique ? (
+            <TechniqueGenerated
+              key="generated"
+              techniqueName={card.text}
+              generatedText={generatedTechnique}
+              onRegenerate={() => regenerateTechnique()}
+              onRemove={() => setStageSlot(slotType, null)}
+            />
+          ) : card ? (
             <motion.div
               key={card.id}
               initial={{ scale: 0.5, opacity: 0, rotateY: 90 }}
@@ -49,11 +151,18 @@ export function StageSlot({ slotType, cardId, isOver }: StageSlotProps) {
               transition={{ type: 'spring', stiffness: 300, damping: 20 }}
               className="w-full"
             >
-              <ComedyCardComponent
-                card={card}
-                isOnStage
-                onClickRemove={() => setStageSlot(slotType, null)}
-              />
+              {isTechnique && !hasObservation ? (
+                <div className="rounded-xl border-2 border-dashed border-card-tech/50 bg-card-tech/30 p-3">
+                  <p className="text-xs font-medium text-white">{card.text}</p>
+                  <p className="mt-1 text-[10px] text-white/50">Add an observation first</p>
+                </div>
+              ) : (
+                <ComedyCardComponent
+                  card={card}
+                  isOnStage
+                  onClickRemove={() => setStageSlot(slotType, null)}
+                />
+              )}
             </motion.div>
           ) : (
             <motion.p
@@ -62,7 +171,7 @@ export function StageSlot({ slotType, cardId, isOver }: StageSlotProps) {
               animate={{ opacity: 1 }}
               className="text-center text-xs text-white/40"
             >
-              Drop {CARD_TYPE_LABELS[slotType]} here
+              {isTechnique ? 'Drop Technique — AI will write the bridge' : `Drop ${CARD_TYPE_LABELS[slotType]} here`}
             </motion.p>
           )}
         </AnimatePresence>

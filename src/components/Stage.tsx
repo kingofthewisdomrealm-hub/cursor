@@ -10,25 +10,32 @@ interface StageProps {
 
 export function Stage({ activeSlot }: StageProps) {
   const stage = useGameStore((s) => s.stage);
+  const generatedTechnique = useGameStore((s) => s.generatedTechnique);
+  const isGeneratingTechnique = useGameStore((s) => s.isGeneratingTechnique);
   const submitJoke = useGameStore((s) => s.submitJoke);
   const clearStage = useGameStore((s) => s.clearStage);
 
-  const isComplete = stage.observation && stage.technique && stage.punchline;
+  const hasAllSlots = stage.observation && stage.technique && stage.punchline;
+  const isComplete = hasAllSlots && generatedTechnique && !isGeneratingTechnique;
 
   const obs = stage.observation ? getCardById(stage.observation) : null;
-  const tech = stage.technique ? getCardById(stage.technique) : null;
   const punch = stage.punchline ? getCardById(stage.punchline) : null;
 
   const handleSubmit = () => {
     if (isComplete) submitJoke();
   };
 
+  const submitLabel = isGeneratingTechnique
+    ? '✨ Generating technique...'
+    : hasAllSlots && !generatedTechnique
+      ? 'Waiting for AI...'
+      : isComplete
+        ? '🎤 Perform Joke!'
+        : 'Fill All Slots';
+
   return (
     <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-stage-red/20 via-stage-dark to-stage-dark shadow-2xl">
-      {/* Spotlight */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-stage-spotlight/15 to-transparent animate-spotlight" />
-
-      {/* Curtains */}
       <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-stage-red/40 to-transparent" />
       <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-stage-red/40 to-transparent" />
 
@@ -37,11 +44,10 @@ export function Stage({ activeSlot }: StageProps) {
           <h2 className="font-display text-2xl tracking-widest text-stage-spotlight">
             THE STAGE
           </h2>
-          <p className="text-xs text-white/50">Drop your cards to build a joke</p>
+          <p className="text-xs text-white/50">Drop cards — AI writes your technique bridge</p>
         </div>
 
-        {/* Joke preview */}
-        {isComplete && obs && tech && punch && (
+        {isComplete && obs && generatedTechnique && punch && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -49,13 +55,12 @@ export function Stage({ activeSlot }: StageProps) {
           >
             <p className="text-center text-sm leading-relaxed text-white/90">
               {obs.text}{' '}
-              <span className="text-card-tech/80 italic">[{tech.text}]</span>{' '}
+              <span className="text-card-tech/90 italic">{generatedTechnique}</span>{' '}
               {punch.text}
             </p>
           </motion.div>
         )}
 
-        {/* Drop slots */}
         <div className="mb-4 flex flex-col gap-2 sm:flex-row">
           <StageSlot
             slotType="observation"
@@ -74,11 +79,10 @@ export function Stage({ activeSlot }: StageProps) {
           />
         </div>
 
-        {/* Actions */}
         <div className="flex gap-2">
           <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={isComplete ? { scale: 1.02 } : undefined}
+            whileTap={isComplete ? { scale: 0.98 } : undefined}
             onClick={handleSubmit}
             disabled={!isComplete}
             className={`
@@ -90,7 +94,7 @@ export function Stage({ activeSlot }: StageProps) {
               }
             `}
           >
-            {isComplete ? '🎤 Perform Joke!' : 'Fill All Slots'}
+            {submitLabel}
           </motion.button>
 
           {(stage.observation || stage.technique || stage.punchline) && (
@@ -106,7 +110,6 @@ export function Stage({ activeSlot }: StageProps) {
         </div>
       </div>
 
-      {/* Audience silhouettes */}
       <div className="flex justify-center gap-1 border-t border-white/5 bg-black/40 py-2">
         {Array.from({ length: 12 }).map((_, i) => (
           <div

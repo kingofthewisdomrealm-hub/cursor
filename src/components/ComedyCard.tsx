@@ -71,11 +71,14 @@ export function ComedyCardComponent({
       `}
     >
       <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-white/70">
-        {card.type}
+        {card.type === 'technique' ? 'technique' : card.type}
       </span>
       <p className={`font-medium leading-snug text-white ${isOnStage ? 'text-xs' : 'text-sm'}`}>
         {card.text}
       </p>
+      {card.type === 'technique' && !isOnStage && (
+        <p className="mt-1 text-[10px] text-white/50">AI generates the bridge on stage</p>
+      )}
     </motion.div>
   );
 }

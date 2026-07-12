@@ -22,6 +22,12 @@ export interface StageSlots {
   punchline: string | null;
 }
 
+export interface TechniqueGeneration {
+  generatedTechnique: string | null;
+  isGeneratingTechnique: boolean;
+  techniqueError: string | null;
+}
+
 export interface JokeScores {
   laughScore: number;
   killTonyScore: number;
