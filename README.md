@@ -1,22 +1,6 @@
-# Florida Storm Map
+# Commerce Architect
 
-A mobile-first storm intelligence dashboard for roofing, restoration, solar, and storm-recovery teams operating in Florida.
-
-**Where did severe weather happen recently in Florida?**
-
-## Features
-
-- Full-screen interactive Florida map (Leaflet)
-- Color-coded storm markers by severity (Minor → Major)
-- 12 major Florida airport weather stations
-- Storm detail panel with impact radius visualization (1, 3, 5, 10 miles)
-- Filters: date range, storm type, hail size, wind speed, severity, airport
-- Dashboard summary: monthly storm counts and most active region
-- Saved storms (browser local storage, no login required)
-
-## Supported Event Types
-
-Hail, Severe Wind, Tornado, Hurricane, Flooding, Thunderstorm
+A mobile-first business-building game where players learn e-commerce by assembling profitable businesses from interchangeable components.
 
 ## Run locally
 
@@ -38,25 +22,48 @@ npm run preview
 
 - React + TypeScript + Vite
 - Tailwind CSS
-- Leaflet / react-leaflet
-- React Router
-- Local Storage
+- Framer Motion
+- Lucide React
+- LocalStorage for save data
 
-## Data Architecture
+## How to Play
 
-Storm events are structured for future integration with:
+1. Fill the **Business Blueprint** slots by tapping cards from the deck, then tapping a matching slot.
+2. Start with **Product** and **Market** (Level 1), then unlock more slots as you gain XP.
+3. When all active slots are filled, tap **Launch Business** to run the simulation.
+4. Review **Revenue**, **Profit**, **Conversion Rate**, and **Customer Satisfaction**.
+5. Read the feedback to learn why combinations succeed or fail.
+6. Face **Boss Battles** like Black Friday, Competitor Attack, and Ad Ban.
+7. Unlock cards, earn achievements, and build winning streaks.
 
-- Airport weather observations (METAR)
-- NOAA Storm Events
-- News-reported severe weather
+## Game Levels
 
-Version 1 ships with representative sample data across Florida.
+| Level | Name | Slots Unlocked |
+|-------|------|----------------|
+| 1 | Product-Market Fit | Product, Market |
+| 2 | Problem Match | + Problem |
+| 3 | Messaging | + Hook |
+| 4 | Offer Design | + Offer |
+| 5 | Traffic Sources | + Ad |
+| 6 | Funnel Architecture | + Landing Page |
+
+## Example Winning Combo
+
+- **Product:** Protein Powder
+- **Market:** Busy Professionals
+- **Problem:** No Time To Cook
+- **Hook:** "Healthy Meals In 60 Seconds"
+- **Offer:** Buy 2 Get 1 Free
+- **Ad:** TikTok UGC Video
+- **Landing Page:** Simple One-Product Store
+
+Progress saves automatically in your browser.
 
 ## Play online
 
 **Live demo (share with friends):** https://cdn.jsdelivr.net/gh/kingofthewisdomrealm-hub/cursor@gh-pages/index.html
 
-**GitHub Pages (optional):** https://kingofthewisdomrealm-hub.github.io/cursor/
+**GitHub Pages:** https://kingofthewisdomrealm-hub.github.io/cursor/
 
 > To enable GitHub Pages: [Settings → Pages](https://github.com/kingofthewisdomrealm-hub/cursor/settings/pages)
 > → Source: **Deploy from a branch** → Branch: **gh-pages** → **/ (root)** → Save.

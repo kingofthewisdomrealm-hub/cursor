@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "leaflet/dist/leaflet.css";
 
 @theme {
   --font-sans: "DM Sans", system-ui, sans-serif;
@@ -15,39 +14,34 @@ body,
 
 body {
   font-family: var(--font-sans);
-  background: #020617;
-  color: #f1f5f9;
+  background: linear-gradient(165deg, #ecfdf5 0%, #f0fdfa 35%, #fefce8 100%);
   -webkit-tap-highlight-color: transparent;
 }
 
-.leaflet-container {
-  font-family: var(--font-sans);
-  background: #0f172a;
+.game-container {
+  max-width: 28rem;
+  margin: 0 auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
-.leaflet-popup-content-wrapper {
-  border-radius: 0.5rem;
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-.leaflet-tooltip.danger-zone-tooltip {
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid rgba(248, 113, 113, 0.5);
-  color: #fecaca;
-  font-size: 11px;
-  font-weight: 500;
-  padding: 4px 8px;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
-.leaflet-tooltip.danger-zone-tooltip::before {
-  border-top-color: rgba(15, 23, 42, 0.95);
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
 }
 
-.safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom, 0);
-}
-
-input[type="date"] {
-  color-scheme: dark;
+.shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
 }
