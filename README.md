@@ -36,8 +36,6 @@ npm run preview
 6. Face **Boss Battles** like Black Friday, Competitor Attack, and Ad Ban.
 7. Unlock cards, earn achievements, and build winning streaks.
 
-Progress saves automatically in your browser.
-
 ## Game Levels
 
 | Level | Name | Slots Unlocked |
@@ -60,3 +58,12 @@ Progress saves automatically in your browser.
 - **Landing Page:** Simple One-Product Store
 
 Progress saves automatically in your browser.
+
+## Play online
+
+**Live demo (share with friends):** https://cdn.jsdelivr.net/gh/kingofthewisdomrealm-hub/cursor@gh-pages/index.html
+
+**GitHub Pages:** https://kingofthewisdomrealm-hub.github.io/cursor/
+
+> To enable GitHub Pages: [Settings → Pages](https://github.com/kingofthewisdomrealm-hub/cursor/settings/pages)
+> → Source: **Deploy from a branch** → Branch: **gh-pages** → **/ (root)** → Save.
