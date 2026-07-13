@@ -26,7 +26,8 @@ Aplicación web responsive para trabajadores independientes, emprendedores y peq
 
 ## Características
 
-- Selector **Persona Física / Persona Moral** con regímenes específicos
+- **Selector de Régimen Fiscal** — PF/PM, 22 regímenes, cuestionario, recomendaciones y panel admin
+- Selector **Persona Física / Persona Moral** con regímenes específicos para cálculos
 - Panel con ingresos cobrados, deducciones autorizadas, base ISR, reserva ISR e IVA
 - Registro de ingresos y gastos con UUID de CFDI, IVA y retenciones
 - Categorías alineadas con deducciones del Art. 27 LISR

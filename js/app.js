@@ -31,6 +31,14 @@ import {
   getAvailableYears,
 } from './logic.js';
 
+import {
+  createRegimeSelectorState,
+  renderRegimeSelector as renderRegimeSelectorModule,
+  bindRegimeSelector,
+  mapRegimeToAppSettings,
+} from './regime-selector/ui.js';
+import { getRegimeById } from './regime-selector/catalog-store.js';
+import { buildTaxProfileFromAnswers, normalizeQuestionnaireAnswers } from './regime-selector/recommend.js';
 import { parseCfdiXml, readFileAsText, isCfdiXml } from './cfdi-xml.js';
 import { exportToXml, exportFullBackupXml, importFromXml, downloadXml } from './xml-export.js';
 
@@ -52,6 +60,7 @@ let state = loadState();
 let currentView = 'dashboard';
 let reportFilters = {};
 let pendingCfdiUpload = { income: null, expense: null };
+let rsState = createRegimeSelectorState();
 
 const VIEW_META = {
   dashboard: { title: 'Panel Principal', subtitle: 'Control fiscal México — SAT' },
@@ -62,6 +71,7 @@ const VIEW_META = {
   calculator: { title: 'Reserva ISR + IVA', subtitle: 'Pagos provisionales estimados' },
   reports: { title: 'Reportes', subtitle: 'Exportar e importar en formato XML' },
   score: { title: 'Puntuación de Preparación Fiscal', subtitle: 'Listo para declarar ante el SAT' },
+  'regime-selector': { title: 'Selector de Régimen Fiscal', subtitle: 'Clasificación educativa — México' },
 };
 
 const MONTHS = [
@@ -327,6 +337,16 @@ function renderDashboard() {
   const regime = getRegime(regimeId);
 
   return `
+    ${state.settings.taxProfile?.selectedRegimeName ? `
+    <div class="card mb-1" style="border-color:var(--accent-dim)">
+      <div class="flex-between">
+        <div>
+          <div class="card-label">Régimen en tu perfil</div>
+          <strong>${state.settings.taxProfile.selectedRegimeName}</strong>
+        </div>
+        <button class="btn btn-secondary btn-sm" data-nav="regime-selector">Abrir selector</button>
+      </div>
+    </div>` : ''}
     ${renderRegimeSelector()}
 
     <div class="card quick-capture mb-1">
@@ -1011,8 +1031,54 @@ function renderScore() {
 }
 
 /* ─── Render & Events ─── */
+function saveRegimeToProfile(regimeId) {
+  const regime = getRegimeById(rsState.catalog, regimeId);
+  if (!regime) {
+    showToast('Régimen no encontrado', 'error');
+    return;
+  }
+  const mapped = mapRegimeToAppSettings(regime);
+  const prev = state.settings.taxProfile || {};
+  const selectedIds = [...new Set([...(prev.selectedRegimeIds || []), regimeId])];
+  updateSettings(state, {
+    ...mapped,
+    taxProfile: {
+      ...prev,
+      ...mapped,
+      selectedRegimeIds: selectedIds,
+      selectedRegimeCatalogId: regimeId,
+      selectedRegimeName: regime.name,
+      taxpayerType: regime.taxpayerType,
+    },
+  });
+  showToast(`Régimen guardado en tu perfil: ${regime.name}`);
+}
+
 function render() {
   const content = $('#content');
+  const isRegimeModule = currentView === 'regime-selector';
+  document.body.classList.toggle('regime-module-active', isRegimeModule);
+
+  if (isRegimeModule) {
+    content.innerHTML = renderRegimeSelectorModule(rsState, state.settings.taxProfile || {});
+    bindRegimeSelector(content, rsState, {
+      onNavigate: () => render(),
+      onSaveProfile: saveRegimeToProfile,
+      onToast: showToast,
+      onQuestionnaireComplete: (profile, recommendedIds) => {
+        updateSettings(state, {
+          taxProfile: {
+            ...(state.settings.taxProfile || {}),
+            ...profile,
+            recommendedRegimeIds: recommendedIds,
+            lastQuestionnaireAt: new Date().toISOString(),
+          },
+        });
+      },
+    });
+    return;
+  }
+
   const views = {
     dashboard: renderDashboard,
     income: renderIncomeForm,

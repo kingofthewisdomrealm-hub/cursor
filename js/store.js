@@ -14,6 +14,18 @@ const DEFAULT_STATE = {
     taxPercentage: 30,
     defaultIvaRate: '16',
     isIvaLiable: true,
+    taxProfile: {
+      taxpayerType: 'unknown',
+      incomeSources: [],
+      incomePattern: null,
+      registeredWithSat: null,
+      currentRegimesCount: null,
+      recommendedRegimeIds: [],
+      selectedRegimeIds: [],
+      selectedRegimeCatalogId: null,
+      selectedRegimeName: null,
+      lastQuestionnaireAt: null,
+    },
   },
 };
 
