@@ -36,11 +36,15 @@ import { exportToXml, exportFullBackupXml, importFromXml, downloadXml } from './
 
 import {
   TAX_REGIMES,
+  CONTRIBUYENTE_TYPES,
   IVA_OPTIONS,
   CFDI_TYPES,
   RETENTION_TYPES,
   SAT_DEDUCTION_HINTS,
   getRegime,
+  getContributorType,
+  getRegimesForContributor,
+  getDefaultRegimeForContributor,
   getAnnualIncomeYTD,
   isValidCfdiUuid,
 } from './mexico-tax.js';
@@ -161,20 +165,44 @@ function getFormAmount(fd, field = 'amount') {
 }
 
 function renderRegimeSelector() {
-  const current = state.settings.taxRegime ?? 'resico';
+  const contributorType = state.settings.contributorType ?? 'persona_fisica';
+  const currentRegime = state.settings.taxRegime ?? getDefaultRegimeForContributor(contributorType);
+  const regimes = getRegimesForContributor(contributorType);
+  const contributor = getContributorType(contributorType);
+  const regime = getRegime(currentRegime);
+
   return `
     <div class="card regime-card mb-1">
-      <div class="section-title">Régimen fiscal <span>LISR</span></div>
+      <div class="section-title">Tipo de contribuyente <span>SAT</span></div>
+      <div class="contributor-toggle grid grid-2 mb-1">
+        ${Object.values(CONTRIBUYENTE_TYPES).map((c) => `
+          <button type="button" class="contributor-btn ${contributorType === c.id ? 'active' : ''}" data-contributor="${c.id}">
+            <span class="contributor-badge">${c.shortLabel}</span>
+            <strong>${c.label}</strong>
+            <span class="card-hint">${c.description}</span>
+          </button>
+        `).join('')}
+      </div>
+
+      <div class="section-title">Régimen fiscal — ${contributor.label} <span>${contributor.legalRef}</span></div>
       <div class="field">
         <label for="tax-regime">Seleccione su régimen ante el SAT</label>
         <select id="tax-regime" name="taxRegime">
-          ${Object.values(TAX_REGIMES).map((r) => `
-            <option value="${r.id}" ${current === r.id ? 'selected' : ''}>${r.label} — ${r.fullName}</option>
+          ${regimes.map((r) => `
+            <option value="${r.id}" ${currentRegime === r.id ? 'selected' : ''}>${r.label} — ${r.fullName}</option>
           `).join('')}
         </select>
-        <div class="field-hint" id="regime-hint">${getRegime(current).description} (${getRegime(current).legalRef})</div>
+        <div class="field-hint" id="regime-hint">${regime.description} (${regime.legalRef})</div>
       </div>
-      <label class="checkbox-row">
+
+      <div class="regime-summary">
+        <span class="status-badge ${contributorType === 'persona_fisica' ? 'status-ready' : 'status-needs-clarification'}">${contributor.shortLabel}</span>
+        <span class="status-badge status-${regime.allowsDeductions ? 'ready' : 'missing-purpose'}">
+          ${regime.allowsDeductions ? 'Deducciones autorizadas' : 'Sin deducciones (RESICO)'}
+        </span>
+      </div>
+
+      <label class="checkbox-row mt-1">
         <input type="checkbox" id="iva-liable" ${state.settings.isIvaLiable ? 'checked' : ''}>
         Estoy inscrito en el padrón de IVA (LIVA)
       </label>
@@ -287,7 +315,8 @@ function readCfdiAndIvaFromForm(fd, prefix = '') {
 function renderDashboard() {
   const totalIncome = getTotalIncome(state.incomes);
   const totalExpenses = getTotalExpenses(state.expenses);
-  const regimeId = state.settings.taxRegime ?? 'resico';
+  const regimeId = state.settings.taxRegime ?? getDefaultRegimeForContributor(state.settings.contributorType);
+  const contributor = getContributorType(state.settings.contributorType ?? 'persona_fisica');
   const deductions = getPossibleDeductions(state.expenses, regimeId);
   const profit = getEstimatedTaxableProfit(state.incomes, state.expenses, regimeId);
   const tax = getTaxEstimate(state.incomes, state.expenses, state.settings);
@@ -315,7 +344,7 @@ function renderDashboard() {
           <button type="submit" class="btn btn-secondary btn-sm btn-block mt-1">Agregar gasto</button>
         </form>
       </div>
-      <p class="card-hint mt-1">En ${regime.label}, ${regime.allowsDeductions ? 'las deducciones autorizadas reducen la base del ISR.' : 'el ISR se calcula sobre ingresos cobrados sin deducir gastos.'}</p>
+      <p class="card-hint mt-1">En ${regime.label} (${contributor.shortLabel}), ${regime.allowsDeductions ? 'las deducciones autorizadas reducen la base del ISR.' : 'el ISR se calcula sobre ingresos cobrados sin deducir gastos.'}</p>
     </div>
 
     <div class="grid grid-3 mb-1">
@@ -740,17 +769,18 @@ function renderDocumentation() {
 
 /* ─── Calculator ─── */
 function renderCalculator() {
-  const regimeId = state.settings.taxRegime ?? 'resico';
+  const regimeId = state.settings.taxRegime ?? getDefaultRegimeForContributor(state.settings.contributorType);
+  const contributor = getContributorType(state.settings.contributorType ?? 'persona_fisica');
   const tax = getTaxEstimate(state.incomes, state.expenses, state.settings);
   const regime = getRegime(regimeId);
   const annualYtd = getAnnualIncomeYTD(state.incomes);
-  const showManualSlider = regimeId === 'manual';
+  const showManualSlider = regimeId === 'manual_pf' || regimeId === 'manual_pm';
 
   return `
     ${renderRegimeSelector()}
     <div class="grid grid-2">
       <div class="card">
-        <div class="section-title">Reserva ISR <span>${regime.label}</span></div>
+        <div class="section-title">Reserva ISR <span>${contributor.shortLabel} · ${regime.label}</span></div>
         ${showManualSlider ? `
         <div class="calculator-slider">
           <div class="slider-value" id="tax-display">${state.settings.taxPercentage}%</div>
@@ -1015,6 +1045,16 @@ function focusPrimaryAmountInput() {
 }
 
 function bindViewEvents() {
+  $$('[data-contributor]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const contributorType = btn.dataset.contributor;
+      const defaultRegime = getDefaultRegimeForContributor(contributorType);
+      updateSettings(state, { contributorType, taxRegime: defaultRegime });
+      showToast(`Contribuyente: ${getContributorType(contributorType).label}`);
+      render();
+    });
+  });
+
   const taxRegimeSelect = $('#tax-regime');
   if (taxRegimeSelect) {
     taxRegimeSelect.addEventListener('change', () => {
@@ -1024,7 +1064,7 @@ function bindViewEvents() {
         const r = getRegime(taxRegimeSelect.value);
         hint.textContent = `${r.description} (${r.legalRef})`;
       }
-      showToast(`Régimen actualizado: ${getRegime(taxRegimeSelect.value).label}`);
+      showToast(`Régimen ${getContributorType(state.settings.contributorType).shortLabel}: ${getRegime(taxRegimeSelect.value).label}`);
       render();
     });
   }

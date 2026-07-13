@@ -1037,3 +1037,62 @@ input[type="range"]::-webkit-slider-thumb {
   text-align: center;
   padding: 1rem 0;
 }
+
+.contributor-toggle {
+  gap: 0.75rem;
+}
+
+.contributor-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 1rem 1.1rem;
+  background: var(--bg);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-family: var(--font);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.contributor-btn:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-card-hover);
+}
+
+.contributor-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--text);
+}
+
+.contributor-btn strong {
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.contributor-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+  background: var(--bg-card);
+  color: var(--accent);
+}
+
+.contributor-btn.active .contributor-badge {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.regime-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}

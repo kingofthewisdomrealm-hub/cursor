@@ -1,6 +1,4 @@
-import { getSubtotal, getIvaFromTransaction } from './mexico-tax.js';
-import { getDocStatus } from './logic.js';
-import { getRegime } from './mexico-tax.js';
+import { getSubtotal, getIvaFromTransaction, getRegime, getContributorType, normalizeRegimeId } from './mexico-tax.js';
 
 function esc(value) {
   return String(value ?? '')
@@ -15,11 +13,13 @@ function indent(level) {
 }
 
 export function exportToXml(incomes, expenses, settings = {}) {
-  const regime = getRegime(settings.taxRegime ?? 'resico');
+  const regime = getRegime(settings.taxRegime ?? 'resico_pf');
+  const contributor = getContributorType(settings.contributorType ?? regime.contributorType);
   const lines = [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    `<MapaPoderFiscal xmlns="http://tax-power-mapper.mx/export/1.0" version="1.0" generado="${new Date().toISOString()}">`,
+    `<MapaPoderFiscal xmlns="http://tax-power-mapper.mx/export/1.0" version="1.1" generado="${new Date().toISOString()}">`,
     `${indent(1)}<Configuracion>`,
+    `${indent(2)}<TipoContribuyente codigo="${esc(settings.contributorType)}">${esc(contributor.label)}</TipoContribuyente>`,
     `${indent(2)}<RegimenFiscal codigo="${esc(settings.taxRegime)}">${esc(regime.fullName)}</RegimenFiscal>`,
     `${indent(2)}<InscritoIVA>${settings.isIvaLiable ? 'true' : 'false'}</InscritoIVA>`,
     `${indent(2)}<TasaManual>${settings.taxPercentage ?? 30}</TasaManual>`,
@@ -86,7 +86,9 @@ export function importFromXml(xmlText) {
 
   const config = root.querySelector('Configuracion');
   const settings = {
-    taxRegime: config?.querySelector('RegimenFiscal')?.getAttribute('codigo') || 'resico',
+    contributorType: config?.querySelector('TipoContribuyente')?.getAttribute('codigo')
+      || (config?.querySelector('RegimenFiscal')?.getAttribute('codigo')?.endsWith('_pm') ? 'persona_moral' : 'persona_fisica'),
+    taxRegime: config?.querySelector('RegimenFiscal')?.getAttribute('codigo') || 'resico_pf',
     isIvaLiable: config?.querySelector('InscritoIVA')?.textContent === 'true',
     taxPercentage: Number(config?.querySelector('TasaManual')?.textContent) || 30,
     defaultIvaRate: config?.querySelector('TasaIVADefault')?.textContent || '16',

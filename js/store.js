@@ -1,10 +1,16 @@
+import {
+  normalizeRegimeId,
+  normalizeContributorType,
+} from './mexico-tax.js';
+
 const STORAGE_KEY = 'tax-power-mapper-data';
 
 const DEFAULT_STATE = {
   incomes: [],
   expenses: [],
   settings: {
-    taxRegime: 'resico',
+    contributorType: 'persona_fisica',
+    taxRegime: 'resico_pf',
     taxPercentage: 30,
     defaultIvaRate: '16',
     isIvaLiable: true,
@@ -16,10 +22,17 @@ export function loadState() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return structuredClone(DEFAULT_STATE);
     const parsed = JSON.parse(raw);
+    const taxRegime = normalizeRegimeId(parsed.settings?.taxRegime);
+    const contributorType = normalizeContributorType(parsed.settings?.contributorType, taxRegime);
     return {
       incomes: parsed.incomes ?? [],
       expenses: parsed.expenses ?? [],
-      settings: { ...DEFAULT_STATE.settings, ...parsed.settings },
+      settings: {
+        ...DEFAULT_STATE.settings,
+        ...parsed.settings,
+        taxRegime,
+        contributorType,
+      },
     };
   } catch {
     return structuredClone(DEFAULT_STATE);

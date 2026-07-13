@@ -10,6 +10,10 @@ import {
   estimateIsrReserve,
   regimeAllowsDeductions,
   getRegime,
+  getContributorType,
+  getRegimesForContributor,
+  getDefaultRegimeForContributor,
+  normalizeRegimeId,
 } from './mexico-tax.js';
 
 export function parseAmount(value) {
@@ -70,12 +74,14 @@ export function getEstimatedTaxableProfit(incomes, expenses, regimeId = 'activid
 }
 
 export function getTaxEstimate(incomes, expenses, settings) {
-  const regimeId = settings.taxRegime ?? 'resico';
+  const regimeId = normalizeRegimeId(settings.taxRegime ?? 'resico_pf');
+  const contributorType = normalizeContributorType(settings.contributorType, regimeId);
   const totalIncome = getTotalIncome(incomes);
   const taxableProfit = getEstimatedTaxableProfit(incomes, expenses, regimeId);
   const annualIncomeYTD = getAnnualIncomeYTD(incomes);
   const isr = estimateIsrReserve({
     regimeId,
+    contributorType,
     totalIncome,
     taxableProfit,
     annualIncomeYTD,
@@ -86,6 +92,7 @@ export function getTaxEstimate(incomes, expenses, settings) {
     : 0;
 
   return {
+    contributorType: getContributorType(contributorType),
     regime: getRegime(regimeId),
     isr,
     ivaPayable,
