@@ -18,10 +18,11 @@ import {
   getTotalExpenses,
   getPossibleDeductions,
   getEstimatedTaxableProfit,
-  getEstimatedTaxReserve,
+  getTaxEstimate,
   getUnclassifiedExpenses,
   getDocStatus,
   getMissingReceiptsCount,
+  getMissingCfdiCount,
   getPreparationScore,
   getMonthlyChartData,
   filterTransactions,
@@ -30,19 +31,30 @@ import {
   getAvailableYears,
 } from './logic.js';
 
+import {
+  TAX_REGIMES,
+  IVA_OPTIONS,
+  CFDI_TYPES,
+  RETENTION_TYPES,
+  SAT_DEDUCTION_HINTS,
+  getRegime,
+  getAnnualIncomeYTD,
+  isValidCfdiUuid,
+} from './mexico-tax.js';
+
 let state = loadState();
 let currentView = 'dashboard';
 let reportFilters = {};
 
 const VIEW_META = {
-  dashboard: { title: 'Panel Principal', subtitle: 'Centro de control financiero' },
-  income: { title: 'Registrar Ingreso', subtitle: 'Capture sus entradas de dinero' },
-  expense: { title: 'Registrar Gasto', subtitle: 'Documente cada egreso' },
-  sifting: { title: 'Motor SIFTING Fiscal', subtitle: 'Clasifique sus gastos pendientes' },
-  documentation: { title: 'Estado de Documentación', subtitle: 'Revise el estado de cada gasto' },
-  calculator: { title: 'Calculadora de Reserva Fiscal', subtitle: 'Estime su reserva de impuestos' },
-  reports: { title: 'Reportes', subtitle: 'Filtre y exporte sus datos' },
-  score: { title: 'Puntuación de Preparación Fiscal', subtitle: 'Mida su nivel de organización' },
+  dashboard: { title: 'Panel Principal', subtitle: 'Control fiscal México — SAT' },
+  income: { title: 'Registrar Ingreso', subtitle: 'Ingresos cobrados y CFDI emitido' },
+  expense: { title: 'Registrar Gasto', subtitle: 'Gastos con CFDI y deducciones autorizadas' },
+  sifting: { title: 'Motor SIFTING Fiscal', subtitle: 'Clasifique gastos deducibles (Art. 27 LISR)' },
+  documentation: { title: 'Estado de Documentación', subtitle: 'CFDI y requisitos SAT' },
+  calculator: { title: 'Reserva ISR + IVA', subtitle: 'Pagos provisionales estimados' },
+  reports: { title: 'Reportes', subtitle: 'Filtre y exporte para su contador' },
+  score: { title: 'Puntuación de Preparación Fiscal', subtitle: 'Listo para declarar ante el SAT' },
 };
 
 const MONTHS = [
@@ -55,11 +67,12 @@ const MONTHS = [
 
 const DOC_STATUSES = [
   { value: '', label: 'Todos los estados' },
-  { value: 'ready', label: 'Listo para revisión' },
-  { value: 'missing-receipt', label: 'Falta recibo' },
-  { value: 'missing-purpose', label: 'Falta propósito comercial' },
+  { value: 'ready', label: 'Listo para revisión SAT' },
+  { value: 'missing-cfdi', label: 'Falta CFDI' },
+  { value: 'missing-receipt', label: 'Falta comprobante' },
+  { value: 'missing-purpose', label: 'Falta relación con actividad' },
   { value: 'needs-clarification', label: 'Necesita aclaración' },
-  { value: 'personal', label: 'Gasto personal' },
+  { value: 'personal', label: 'Gasto no deducible' },
 ];
 
 function $(sel) { return document.querySelector(sel); }
@@ -143,24 +156,85 @@ function getFormAmount(fd, field = 'amount') {
   return parseAmount(fd.get(field));
 }
 
+function renderRegimeSelector() {
+  const current = state.settings.taxRegime ?? 'resico';
+  return `
+    <div class="card regime-card mb-1">
+      <div class="section-title">Régimen fiscal <span>LISR</span></div>
+      <div class="field">
+        <label for="tax-regime">Seleccione su régimen ante el SAT</label>
+        <select id="tax-regime" name="taxRegime">
+          ${Object.values(TAX_REGIMES).map((r) => `
+            <option value="${r.id}" ${current === r.id ? 'selected' : ''}>${r.label} — ${r.fullName}</option>
+          `).join('')}
+        </select>
+        <div class="field-hint" id="regime-hint">${getRegime(current).description} (${getRegime(current).legalRef})</div>
+      </div>
+      <label class="checkbox-row">
+        <input type="checkbox" id="iva-liable" ${state.settings.isIvaLiable ? 'checked' : ''}>
+        Estoy inscrito en el padrón de IVA (LIVA)
+      </label>
+    </div>
+  `;
+}
+
+function renderIvaFields(prefix, defaults = {}) {
+  const includesIva = defaults.includesIva !== false;
+  const ivaRate = defaults.ivaRate ?? state.settings.defaultIvaRate ?? '16';
+  return `
+    <div class="form-row-2">
+      <div class="field">
+        <label for="${prefix}-iva-rate">Tasa de IVA</label>
+        <select id="${prefix}-iva-rate" name="ivaRate">
+          ${IVA_OPTIONS.map((o) => `<option value="${o.id}" ${ivaRate === o.id ? 'selected' : ''}>${o.label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field checkbox-field">
+        <label class="checkbox-row">
+          <input type="checkbox" id="${prefix}-includes-iva" name="includesIva" ${includesIva ? 'checked' : ''}>
+          El monto incluye IVA
+        </label>
+        <div class="field-hint">Desmarque si captura el subtotal sin IVA</div>
+      </div>
+    </div>
+  `;
+}
+
+function readCfdiAndIvaFromForm(fd, prefix = '') {
+  const cfdiUuid = String(fd.get('cfdiUuid') || '').trim();
+  const includesIva = fd.get('includesIva') === 'on';
+  return {
+    cfdiUuid: cfdiUuid || null,
+    includesIva,
+    ivaRate: fd.get('ivaRate') || state.settings.defaultIvaRate || '16',
+    retentionType: fd.get('retentionType') || 'Sin retención',
+    cfdiType: fd.get('cfdiType') || 'Sin CFDI / ticket',
+  };
+}
+
 /* ─── Dashboard ─── */
 function renderDashboard() {
   const totalIncome = getTotalIncome(state.incomes);
   const totalExpenses = getTotalExpenses(state.expenses);
-  const deductions = getPossibleDeductions(state.expenses);
-  const profit = getEstimatedTaxableProfit(state.incomes, state.expenses);
-  const reserve = getEstimatedTaxReserve(state.incomes, state.expenses, state.settings.taxPercentage);
-  const missingReceipts = getMissingReceiptsCount(state.expenses);
+  const regimeId = state.settings.taxRegime ?? 'resico';
+  const deductions = getPossibleDeductions(state.expenses, regimeId);
+  const profit = getEstimatedTaxableProfit(state.incomes, state.expenses, regimeId);
+  const tax = getTaxEstimate(state.incomes, state.expenses, state.settings);
+  const missingCfdi = getMissingCfdiCount(state.expenses);
   const chartData = getMonthlyChartData(state.incomes, state.expenses);
   const maxVal = Math.max(...chartData.flatMap((d) => [d.income, d.expense]), 1);
   const score = getPreparationScore(state.incomes, state.expenses);
+  const annualYtd = getAnnualIncomeYTD(state.incomes);
+  const regime = getRegime(regimeId);
 
   return `
+    ${renderRegimeSelector()}
+
     <div class="card quick-capture mb-1">
-      <div class="section-title">Registro rápido <span>escriba sus cantidades aquí</span></div>
+      <div class="section-title">Registro rápido <span>ingresos cobrados / gastos</span></div>
       <div class="grid grid-2">
         <form id="quick-income-form" class="quick-form">
-          <label class="quick-label" for="quick-income-amount">+ Ingreso</label>
+          <label class="quick-label" for="quick-income-amount">+ Ingreso cobrado</label>
           ${amountInput('quick-income-amount', 'amount', { className: 'quick-amount income-amount' })}
           <button type="submit" class="btn btn-primary btn-sm btn-block mt-1">Agregar ingreso</button>
         </form>
@@ -170,41 +244,60 @@ function renderDashboard() {
           <button type="submit" class="btn btn-secondary btn-sm btn-block mt-1">Agregar gasto</button>
         </form>
       </div>
-      <p class="card-hint mt-1">Los totales se actualizan al guardar. Use las pestañas Ingreso/Gasto para más detalles.</p>
+      <p class="card-hint mt-1">En ${regime.label}, ${regime.allowsDeductions ? 'las deducciones autorizadas reducen la base del ISR.' : 'el ISR se calcula sobre ingresos cobrados sin deducir gastos.'}</p>
     </div>
 
     <div class="grid grid-3 mb-1">
       <div class="card card-hero income">
-        <div class="card-label">Ingresos totales</div>
+        <div class="card-label">Ingresos cobrados (subtotal)</div>
         <div class="card-value income">${formatCurrency(totalIncome)}</div>
+        <div class="card-hint">Acumulado anual: ${formatCurrency(annualYtd)}</div>
       </div>
       <div class="card card-hero expense">
-        <div class="card-label">Gastos totales</div>
+        <div class="card-label">Gastos registrados</div>
         <div class="card-value expense">${formatCurrency(totalExpenses)}</div>
       </div>
       <div class="card card-hero deduction">
-        <div class="card-label">Posibles deducciones de negocio</div>
+        <div class="card-label">Posibles deducciones autorizadas</div>
         <div class="card-value deduction">${formatCurrency(deductions)}</div>
-        <div class="card-hint">No constituye asesoría fiscal</div>
+        <div class="card-hint">${regime.allowsDeductions ? 'Art. 27 LISR · con CFDI' : 'No aplica en RESICO'}</div>
       </div>
     </div>
     <div class="grid grid-3 mb-1">
       <div class="card card-hero profit">
-        <div class="card-label">Ganancia imponible estimada</div>
+        <div class="card-label">Base gravable estimada (ISR)</div>
         <div class="card-value profit">${formatCurrency(profit)}</div>
-        <div class="card-hint">Ingresos − posibles deducciones</div>
+        <div class="card-hint">${regime.allowsDeductions ? 'Ingresos − deducciones' : 'Ingresos cobrados'}</div>
       </div>
       <div class="card card-hero reserve">
-        <div class="card-label">Reserva fiscal estimada</div>
-        <div class="card-value reserve">${formatCurrency(reserve)}</div>
-        <div class="card-hint">Al ${state.settings.taxPercentage}% · Consulte con un profesional</div>
+        <div class="card-label">Reserva ISR estimada</div>
+        <div class="card-value reserve">${formatCurrency(tax.isr.amount)}</div>
+        <div class="card-hint">${tax.isr.method}</div>
       </div>
       <div class="card card-hero warning">
-        <div class="card-label">Recibos faltantes</div>
-        <div class="card-value warning">${missingReceipts}</div>
-        <div class="card-hint">Gastos de negocio sin recibo adjunto</div>
+        <div class="card-label">CFDI faltantes</div>
+        <div class="card-value warning">${missingCfdi}</div>
+        <div class="card-hint">Gastos deducibles sin UUID de CFDI</div>
       </div>
     </div>
+
+    ${state.settings.isIvaLiable ? `
+    <div class="grid grid-3 mb-1">
+      <div class="card">
+        <div class="card-label">IVA trasladado (cobrado)</div>
+        <div class="card-value" style="color:var(--info)">${formatCurrency(tax.ivaCollected)}</div>
+      </div>
+      <div class="card">
+        <div class="card-label">IVA acreditable (pagado)</div>
+        <div class="card-value" style="color:var(--accent)">${formatCurrency(tax.ivaCreditable)}</div>
+      </div>
+      <div class="card">
+        <div class="card-label">IVA a pagar estimado</div>
+        <div class="card-value" style="color:var(--purple)">${formatCurrency(tax.ivaPayable)}</div>
+        <div class="card-hint">LIVA · declaración mensual</div>
+      </div>
+    </div>
+    ` : ''}
 
     <div class="grid grid-2 mt-2">
       <div class="card chart-card">
@@ -241,7 +334,7 @@ function renderDashboard() {
       </div>
     </div>
 
-    <p class="legal-note mt-2">Esta herramienta ofrece estimaciones orientativas. No sustituye la asesoría de un profesional de impuestos.</p>
+    <p class="legal-note mt-2">Herramienta orientativa conforme a LISR y LIVA. No sustituye asesoría de un contador público ni representa opinión del SAT. Consulte con un profesional de impuestos.</p>
   `;
 }
 
@@ -268,6 +361,27 @@ function renderIncomeForm() {
             ${INCOME_SOURCES.map((s) => `<option value="${s}">${s}</option>`).join('')}
           </select>
         </div>
+        ${renderIvaFields('income')}
+        <div class="form-row-2">
+          <div class="field">
+            <label for="income-cfdi">UUID del CFDI (folio fiscal)</label>
+            <input type="text" id="income-cfdi" name="cfdiUuid" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" pattern="[0-9a-fA-F-]{36}">
+            <div class="field-hint">Folio fiscal del CFDI de ingreso emitido ante el SAT</div>
+          </div>
+          <div class="field">
+            <label for="income-cfdi-type">Tipo de comprobante</label>
+            <select id="income-cfdi-type" name="cfdiType">
+              ${CFDI_TYPES.map((t) => `<option value="${t}">${t}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="income-retention">Retenciones aplicadas</label>
+          <select id="income-retention" name="retentionType">
+            ${RETENTION_TYPES.map((t) => `<option value="${t}">${t}</option>`).join('')}
+          </select>
+          <div class="field-hint">ISR/IVA retenido por el cliente (Art. 113 LISR)</div>
+        </div>
         <div class="field">
           <label for="income-client">Cliente o proyecto</label>
           <input type="text" id="income-client" name="clientProject" placeholder="Ej. Proyecto Web ABC">
@@ -285,6 +399,7 @@ function renderIncomeForm() {
         </div>
         <button type="submit" class="btn btn-primary">Registrar ingreso</button>
       </form>
+      <p class="legal-note">Registre ingresos efectivamente cobrados. En RESICO solo cuentan los cobros del periodo.</p>
     </div>
     ${renderRecentIncomes()}
   `;
@@ -298,12 +413,13 @@ function renderRecentIncomes() {
       <div class="section-title">Ingresos recientes</div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Fecha</th><th>Fuente</th><th>Cliente</th><th>Monto</th></tr></thead>
+          <thead><tr><th>Fecha</th><th>Fuente</th><th>CFDI</th><th>Cliente</th><th>Monto</th></tr></thead>
           <tbody>
             ${recent.map((i) => `
               <tr>
                 <td>${formatDate(i.date)}</td>
                 <td>${i.source}</td>
+                <td>${i.cfdiUuid ? '✓' : '—'}</td>
                 <td>${i.clientProject || '—'}</td>
                 <td class="amount editable-amount" style="color:var(--income)">
                   <button type="button" class="amount-edit-btn" data-edit-amount="income" data-id="${i.id}" title="Editar monto">
@@ -343,9 +459,10 @@ function renderExpenseForm() {
           <div class="field">
             <label for="expense-category">Categoría *</label>
             <select id="expense-category" name="category" required>
-              <option value="">Seleccionar...</option>
+              <option value="">Seleccionar categoría SAT...</option>
               ${CATEGORIES.map((c) => `<option value="${c}">${c}</option>`).join('')}
             </select>
+            <div class="field-hint" id="category-hint"></div>
           </div>
           <div class="field">
             <label for="expense-commercial-pct">% uso comercial</label>
@@ -353,18 +470,33 @@ function renderExpenseForm() {
             <div class="field-hint">Para gastos mixtos, ajuste después en SIFTING</div>
           </div>
         </div>
+        ${renderIvaFields('expense')}
+        <div class="form-row-2">
+          <div class="field">
+            <label for="expense-cfdi">UUID del CFDI (folio fiscal)</label>
+            <input type="text" id="expense-cfdi" name="cfdiUuid" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+            <div class="field-hint">Requisito para deducir gastos ante el SAT</div>
+          </div>
+          <div class="field">
+            <label for="expense-cfdi-type">Tipo de comprobante</label>
+            <select id="expense-cfdi-type" name="cfdiType">
+              ${CFDI_TYPES.filter((t) => t !== 'Ingreso (factura emitida)').map((t) => `<option value="${t}">${t}</option>`).join('')}
+            </select>
+          </div>
+        </div>
         <div class="field">
-          <label for="expense-purpose">Propósito comercial</label>
-          <input type="text" id="expense-purpose" name="commercialPurpose" placeholder="Ej. Software para diseño de cliente X">
+          <label for="expense-purpose">Relación con la actividad económica *</label>
+          <input type="text" id="expense-purpose" name="commercialPurpose" placeholder="Ej. Internet para atención a clientes — indispensable">
+          <div class="field-hint">Debe ser estrictamente indispensable para su actividad (Art. 27 LISR)</div>
         </div>
         <div class="field">
           <label for="expense-client">Cliente o proyecto relacionado</label>
           <input type="text" id="expense-client" name="clientProject" placeholder="Ej. Proyecto Web ABC">
         </div>
         <div class="field">
-          <label for="expense-receipt">Subir recibo</label>
-          <input type="file" id="expense-receipt" name="receipt" accept="image/*,.pdf">
-          <div class="field-hint">Imagen o PDF (máx. 2 MB)</div>
+          <label for="expense-receipt">Adjuntar CFDI (PDF/XML) o comprobante</label>
+          <input type="file" id="expense-receipt" name="receipt" accept="image/*,.pdf,.xml">
+          <div class="field-hint">PDF, XML o imagen (máx. 2 MB)</div>
           <div id="receipt-preview"></div>
         </div>
         <div class="field">
@@ -373,7 +505,7 @@ function renderExpenseForm() {
         </div>
         <button type="submit" class="btn btn-primary">Registrar gasto</button>
       </form>
-      <p class="legal-note">Los montos registrados son posibles deducciones hasta que un profesional de impuestos los valide.</p>
+      <p class="legal-note">Las deducciones requieren CFDI vigente, pago electrónico (si aplica) y relación con la actividad. Consulte con un contador.</p>
     </div>
     ${renderRecentExpenses()}
   `;
@@ -427,7 +559,7 @@ function renderSifting() {
   }
 
   return `
-    <p class="card-hint mb-1">Clasifique cada gasto para determinar posibles deducciones. Consulte con un profesional de impuestos.</p>
+    <p class="card-hint mb-1">Clasifique cada gasto según el Art. 27 LISR. Solo gastos estrictamente indispensables son deducibles. Consulte con un contador.</p>
     ${unclassified.map((e) => `
       <div class="card sifting-card" data-expense-id="${e.id}">
         <div class="sifting-amount">${formatCurrency(e.amount)}</div>
@@ -436,11 +568,11 @@ function renderSifting() {
           <span>Categoría: <strong>${e.category}</strong></span>
           ${e.commercialPurpose ? `<span>Propósito: <strong>${e.commercialPurpose}</strong></span>` : ''}
           ${e.clientProject ? `<span>Proyecto: <strong>${e.clientProject}</strong></span>` : ''}
-          ${e.receiptData ? '<span>📎 Recibo adjunto</span>' : '<span style="color:var(--warning)">Sin recibo</span>'}
+          ${e.cfdiUuid ? '<span>✓ CFDI registrado</span>' : e.receiptData ? '<span>📎 Comprobante adjunto</span>' : '<span style="color:var(--warning)">Sin CFDI</span>'}
         </div>
         <div class="btn-group">
-          <button class="btn btn-business" data-classify="business" data-id="${e.id}">Negocio</button>
-          <button class="btn btn-personal" data-classify="personal" data-id="${e.id}">Personal</button>
+          <button class="btn btn-business" data-classify="business" data-id="${e.id}">Deducible</button>
+          <button class="btn btn-personal" data-classify="personal" data-id="${e.id}">No deducible</button>
           <button class="btn btn-mixed" data-classify="mixed" data-id="${e.id}">Mixto</button>
           <button class="btn btn-unsure" data-classify="unsure" data-id="${e.id}">No estoy seguro</button>
         </div>
@@ -469,7 +601,7 @@ function renderDocumentation() {
   }
 
   const grouped = {
-    ready: [], 'missing-receipt': [], 'missing-purpose': [],
+    ready: [], 'missing-cfdi': [], 'missing-receipt': [], 'missing-purpose': [],
     'needs-clarification': [], personal: [],
   };
 
@@ -479,11 +611,12 @@ function renderDocumentation() {
   });
 
   const sections = [
-    { key: 'ready', label: 'Listo para revisión', icon: '✓' },
-    { key: 'missing-receipt', label: 'Falta recibo', icon: '📎' },
-    { key: 'missing-purpose', label: 'Falta propósito comercial', icon: '📝' },
+    { key: 'ready', label: 'Listo para revisión SAT', icon: '✓' },
+    { key: 'missing-cfdi', label: 'Falta CFDI', icon: '🧾' },
+    { key: 'missing-receipt', label: 'Falta comprobante', icon: '📎' },
+    { key: 'missing-purpose', label: 'Falta relación con actividad', icon: '📝' },
     { key: 'needs-clarification', label: 'Necesita aclaración', icon: '?' },
-    { key: 'personal', label: 'Gasto personal', icon: '—' },
+    { key: 'personal', label: 'Gasto no deducible', icon: '—' },
   ];
 
   return sections.map((sec) => {
@@ -503,8 +636,11 @@ function renderDocumentation() {
                 <span class="amount" style="color:var(--expense)">${formatCurrency(e.amount)}</span>
               </div>
               <div class="card-hint">${formatDate(e.date)} · ${e.category}</div>
+              ${!e.cfdiUuid && (sec.key === 'missing-cfdi' || sec.key === 'missing-receipt')
+                ? '<button class="btn btn-secondary btn-sm mt-1" data-add-cfdi="' + e.id + '">Registrar UUID CFDI</button>'
+                : ''}
               ${!e.receiptData && sec.key === 'missing-receipt'
-                ? '<button class="btn btn-secondary btn-sm mt-1" data-upload-receipt="' + e.id + '">Subir recibo</button>'
+                ? '<button class="btn btn-secondary btn-sm mt-1" data-upload-receipt="' + e.id + '">Adjuntar comprobante</button>'
                 : ''}
               ${!e.commercialPurpose?.trim() && sec.key === 'missing-purpose'
                 ? '<button class="btn btn-secondary btn-sm mt-1" data-add-purpose="' + e.id + '">Agregar propósito</button>'
@@ -522,57 +658,71 @@ function renderDocumentation() {
 
 /* ─── Calculator ─── */
 function renderCalculator() {
-  const deductions = getPossibleDeductions(state.expenses);
-  const totalIncome = getTotalIncome(state.incomes);
-  const profit = getEstimatedTaxableProfit(state.incomes, state.expenses);
-  const reserve = getEstimatedTaxReserve(state.incomes, state.expenses, state.settings.taxPercentage);
+  const regimeId = state.settings.taxRegime ?? 'resico';
+  const tax = getTaxEstimate(state.incomes, state.expenses, state.settings);
+  const regime = getRegime(regimeId);
+  const annualYtd = getAnnualIncomeYTD(state.incomes);
+  const showManualSlider = regimeId === 'manual';
 
   return `
+    ${renderRegimeSelector()}
     <div class="grid grid-2">
       <div class="card">
-        <div class="section-title">Porcentaje estimado de impuestos</div>
+        <div class="section-title">Reserva ISR <span>${regime.label}</span></div>
+        ${showManualSlider ? `
         <div class="calculator-slider">
           <div class="slider-value" id="tax-display">${state.settings.taxPercentage}%</div>
-          <input type="range" id="tax-slider" min="10" max="45" step="1" value="${state.settings.taxPercentage}">
+          <input type="range" id="tax-slider" min="10" max="35" step="1" value="${state.settings.taxPercentage}">
           <div class="flex-between" style="font-size:0.78rem;color:var(--text-dim)">
-            <span>10%</span><span>45%</span>
+            <span>10%</span><span>35%</span>
           </div>
-        </div>
+        </div>` : `
+        <div class="regime-rate-box">
+          <div class="slider-value">${tax.isr.rate.toFixed(1)}%</div>
+          <p class="card-hint">${tax.isr.method}</p>
+          <p class="card-hint">Ingresos acumulados ${new Date().getFullYear()}: ${formatCurrency(annualYtd)}</p>
+        </div>`}
         <div class="formula-box">
-          <p><strong>Ganancia imponible estimada</strong></p>
-          <code>${formatCurrency(totalIncome)} − ${formatCurrency(deductions)} = ${formatCurrency(profit)}</code>
-          <p class="mt-1"><strong>Reserva fiscal estimada</strong></p>
-          <code>${formatCurrency(profit)} × ${state.settings.taxPercentage}% = ${formatCurrency(reserve)}</code>
+          <p><strong>Base gravable estimada (ISR)</strong></p>
+          <code>${formatCurrency(tax.totalIncome)}${regime.allowsDeductions ? ` − ${formatCurrency(tax.deductions)}` : ''} = ${formatCurrency(tax.taxableProfit)}</code>
+          <p class="mt-1"><strong>Reserva ISR estimada</strong></p>
+          <code>${formatCurrency(tax.taxableProfit)} × ${tax.isr.rate.toFixed(1)}% = ${formatCurrency(tax.isr.amount)}</code>
+          ${state.settings.isIvaLiable ? `
+          <p class="mt-1"><strong>IVA a pagar estimado (LIVA)</strong></p>
+          <code>${formatCurrency(tax.ivaCollected)} − ${formatCurrency(tax.ivaCreditable)} = ${formatCurrency(tax.ivaPayable)}</code>
+          ` : ''}
         </div>
-        <p class="legal-note">Estas cifras son estimaciones. Consulte con un profesional de impuestos para determinar su tasa real.</p>
+        <p class="legal-note">${tax.isr.note} Pagos provisionales mensuales ante el SAT.</p>
       </div>
       <div class="card">
-        <div class="section-title">Desglose</div>
-        <div class="progress-section">
+        <div class="section-title">Reserva total estimada</div>
+        <div class="card card-hero reserve mt-1" style="border:none;background:var(--bg)">
+          <div class="card-label">ISR + IVA a reservar</div>
+          <div class="card-value reserve">${formatCurrency(tax.totalReserve)}</div>
+        </div>
+        <div class="progress-section mt-1">
           <div class="progress-header">
-            <span class="progress-label">Ingresos totales</span>
-            <span class="progress-value">${formatCurrency(totalIncome)}</span>
+            <span class="progress-label">ISR estimado</span>
+            <span class="progress-value">${formatCurrency(tax.isr.amount)}</span>
           </div>
         </div>
+        ${state.settings.isIvaLiable ? `
+        <div class="progress-section">
+          <div class="progress-header">
+            <span class="progress-label">IVA estimado</span>
+            <span class="progress-value">${formatCurrency(tax.ivaPayable)}</span>
+          </div>
+        </div>` : ''}
         <div class="progress-section">
           <div class="progress-header">
             <span class="progress-label">Posibles deducciones</span>
-            <span class="progress-value" style="color:var(--accent)">− ${formatCurrency(deductions)}</span>
+            <span class="progress-value" style="color:var(--accent)">${formatCurrency(tax.deductions)}</span>
           </div>
           <div class="progress-bar">
-            <div class="progress-fill accent" style="width:${totalIncome ? (deductions / totalIncome) * 100 : 0}%"></div>
+            <div class="progress-fill accent" style="width:${tax.totalIncome ? (tax.deductions / tax.totalIncome) * 100 : 0}%"></div>
           </div>
         </div>
-        <div class="progress-section">
-          <div class="progress-header">
-            <span class="progress-label">Ganancia imponible estimada</span>
-            <span class="progress-value" style="color:var(--info)">${formatCurrency(profit)}</span>
-          </div>
-        </div>
-        <div class="card card-hero reserve mt-1" style="border:none;background:var(--bg)">
-          <div class="card-label">Reserva fiscal estimada</div>
-          <div class="card-value reserve">${formatCurrency(reserve)}</div>
-        </div>
+        <p class="legal-note mt-1">Referencias: LISR (ISR), LIVA (IVA), RESICO (Art. 113-E). Consulte con un contador público.</p>
       </div>
     </div>
   `;
@@ -658,7 +808,7 @@ function renderReports() {
               `).join('')}
               ${filtered.expenses.map((e) => {
                 const status = getDocStatus(e);
-                const classLabels = { business: 'Negocio', personal: 'Personal', mixed: 'Mixto', unsure: 'No seguro' };
+                const classLabels = { business: 'Deducible', personal: 'No deducible', mixed: 'Mixto', unsure: 'No seguro' };
                 return `
                   <tr>
                     <td><span class="status-badge status-missing-receipt">Gasto</span></td>
@@ -714,7 +864,7 @@ function renderScore() {
       <div class="card">
         <div class="section-title">Factores de puntuación</div>
         ${[
-          { key: 'receipts', label: 'Recibos adjuntos', color: 'income' },
+          { key: 'receipts', label: 'CFDI registrados (UUID)', color: 'income' },
           { key: 'classified', label: 'Gastos clasificados', color: 'accent' },
           { key: 'complete', label: 'Información completa', color: 'info' },
           { key: 'documented', label: 'Transacciones documentadas', color: 'warning' },
@@ -739,7 +889,7 @@ function renderScore() {
           <span>${r}</span>
         </div>
       `).join('')}
-      <p class="legal-note">Esta puntuación es orientativa. Consulte con un profesional de impuestos para una evaluación completa.</p>
+      <p class="legal-note">Preparación orientativa para declaraciones ante el SAT. Consulte con un contador público certificado.</p>
     </div>
   `;
 }
@@ -778,6 +928,39 @@ function focusPrimaryAmountInput() {
 }
 
 function bindViewEvents() {
+  const taxRegimeSelect = $('#tax-regime');
+  if (taxRegimeSelect) {
+    taxRegimeSelect.addEventListener('change', () => {
+      updateSettings(state, { taxRegime: taxRegimeSelect.value });
+      const hint = $('#regime-hint');
+      if (hint) {
+        const r = getRegime(taxRegimeSelect.value);
+        hint.textContent = `${r.description} (${r.legalRef})`;
+      }
+      showToast(`Régimen actualizado: ${getRegime(taxRegimeSelect.value).label}`);
+      render();
+    });
+  }
+
+  const ivaLiableCheck = $('#iva-liable');
+  if (ivaLiableCheck) {
+    ivaLiableCheck.addEventListener('change', () => {
+      updateSettings(state, { isIvaLiable: ivaLiableCheck.checked });
+      showToast(ivaLiableCheck.checked ? 'IVA activado (LIVA)' : 'IVA desactivado');
+      render();
+    });
+  }
+
+  const categorySelect = $('#expense-category');
+  const categoryHint = $('#category-hint');
+  if (categorySelect && categoryHint) {
+    const updateHint = () => {
+      categoryHint.textContent = SAT_DEDUCTION_HINTS[categorySelect.value] || '';
+    };
+    categorySelect.addEventListener('change', updateHint);
+    updateHint();
+  }
+
   const quickIncomeForm = $('#quick-income-form');
   if (quickIncomeForm) {
     quickIncomeForm.addEventListener('submit', (e) => {
@@ -792,10 +975,13 @@ function bindViewEvents() {
       addIncome(state, {
         amount,
         date: today,
-        source: 'Otro',
+        source: 'Otro ingreso gravado',
         clientProject: '',
         paymentMethod: '',
         notes: 'Registro rápido desde panel',
+        includesIva: true,
+        ivaRate: state.settings.defaultIvaRate || '16',
+        cfdiUuid: null,
       });
       showToast(`Ingreso de ${formatCurrency(amount)} registrado`);
       quickIncomeForm.reset();
@@ -818,13 +1004,16 @@ function bindViewEvents() {
         amount,
         date: today,
         merchant: 'Gasto rápido',
-        category: 'Otros',
+        category: 'Otros gastos deducibles',
         commercialPurpose: '',
         clientProject: '',
         commercialUsePercent: 100,
         notes: 'Registro rápido desde panel',
         receiptData: null,
         receiptName: null,
+        includesIva: true,
+        ivaRate: state.settings.defaultIvaRate || '16',
+        cfdiUuid: null,
       });
       showToast(`Gasto de ${formatCurrency(amount)} registrado — clasifíquelo en SIFTING`);
       quickExpenseForm.reset();
@@ -849,6 +1038,7 @@ function bindViewEvents() {
         clientProject: fd.get('clientProject') || '',
         paymentMethod: fd.get('paymentMethod') || '',
         notes: fd.get('notes') || '',
+        ...readCfdiAndIvaFromForm(fd, 'income'),
       });
       showToast('Ingreso registrado correctamente');
       incomeForm.reset();
@@ -891,6 +1081,11 @@ function bindViewEvents() {
         receiptName = result.name;
       }
       const commercialPct = parseAmount(fd.get('commercialUsePercent'));
+      const cfdiFields = readCfdiAndIvaFromForm(fd, 'expense');
+      if (cfdiFields.cfdiUuid && !isValidCfdiUuid(cfdiFields.cfdiUuid)) {
+        showToast('UUID de CFDI inválido. Verifique el folio fiscal.', 'error');
+        return;
+      }
       addExpense(state, {
         amount,
         date: fd.get('date'),
@@ -902,6 +1097,7 @@ function bindViewEvents() {
         notes: fd.get('notes') || '',
         receiptData,
         receiptName,
+        ...cfdiFields,
       });
       showToast('Gasto registrado — clasifíquelo en SIFTING');
       expenseForm.reset();
@@ -1044,13 +1240,38 @@ function bindViewEvents() {
     });
   });
 
+  $$('[data-add-cfdi]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.addCfdi;
+      openModal('Registrar UUID del CFDI', `
+        <div class="field">
+          <label>Folio fiscal (UUID)</label>
+          <input type="text" id="modal-cfdi" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+          <div class="field-hint">Lo encuentra en su CFDI emitido por el proveedor</div>
+        </div>
+        <button class="btn btn-primary btn-block mt-1" id="modal-cfdi-save">Guardar CFDI</button>
+      `);
+      $('#modal-cfdi-save').addEventListener('click', () => {
+        const uuid = $('#modal-cfdi').value.trim();
+        if (!isValidCfdiUuid(uuid)) {
+          showToast('UUID de CFDI inválido', 'error');
+          return;
+        }
+        updateExpense(state, id, { cfdiUuid: uuid });
+        closeModal();
+        showToast('CFDI registrado');
+        render();
+      });
+    });
+  });
+
   $$('[data-add-purpose]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.addPurpose;
-      openModal('Agregar propósito comercial', `
+      openModal('Relación con la actividad económica', `
         <div class="field">
-          <label>Propósito comercial</label>
-          <input type="text" id="modal-purpose" placeholder="Describa el uso comercial">
+          <label>Describa por qué es indispensable (Art. 27 LISR)</label>
+          <input type="text" id="modal-purpose" placeholder="Ej. Gasolina para visitas a clientes">
         </div>
         <button class="btn btn-primary btn-block mt-1" id="modal-purpose-save">Guardar</button>
       `);

@@ -1,19 +1,27 @@
-# Tax Power Mapper — Mapa de Poder Fiscal
+# Tax Power Mapper — Mapa de Poder Fiscal (México)
 
-Aplicación web responsive para que trabajadores independientes, emprendedores y pequeños negocios organicen ingresos, gastos, recibos y reservas fiscales durante todo el año.
+Aplicación web responsive para trabajadores independientes, emprendedores y pequeños negocios en México. Organiza ingresos cobrados, gastos, CFDI y reservas de ISR e IVA conforme a la normativa fiscal mexicana.
 
-> **Aviso:** Esta herramienta no constituye asesoría legal ni fiscal. Utiliza estimaciones orientativas. Consulte con un profesional de impuestos.
+> **Aviso:** Herramienta orientativa basada en LISR y LIVA. No constituye asesoría del SAT. Consulte con un contador público certificado.
+
+## Marco fiscal mexicano
+
+- **ISR** — Impuesto Sobre la Renta (pagos provisionales mensuales)
+- **IVA** — Impuesto al Valor Agregado (16% tasa general, 8% frontera)
+- **RESICO** — Régimen Simplificado de Confianza (tarifas 1.0%–2.5% sobre ingresos cobrados)
+- **Actividad Empresarial** — Deducciones autorizadas (Art. 27 LISR) con CFDI
+- **CFDI** — Comprobante Fiscal Digital por Internet (UUID / folio fiscal)
 
 ## Características
 
-- **Panel Principal** — Ingresos, gastos, posibles deducciones, ganancia imponible estimada, reserva fiscal y recibos faltantes
-- **Registrar Ingreso** — Monto, fecha, fuente, cliente/proyecto, método de pago y notas
-- **Registrar Gasto** — Monto, comercio, categoría, propósito comercial, recibo, % uso comercial y más
-- **Motor SIFTING Fiscal** — Clasifique gastos como Negocio, Personal, Mixto o No estoy seguro
-- **Estado de Documentación** — Listo para revisión, falta recibo, falta propósito, necesita aclaración, gasto personal
-- **Calculadora de Reserva Fiscal** — Porcentaje de impuestos ajustable con fórmulas en tiempo real
-- **Reportes** — Filtros por mes, año, categoría, cliente, proyecto y estado; exportación CSV
-- **Puntuación de Preparación Fiscal** — Indicador visual con recomendaciones de mejora
+- Panel con ingresos cobrados, deducciones autorizadas, base ISR, reserva ISR e IVA
+- Selector de régimen fiscal (RESICO, Actividad Empresarial, tasa manual)
+- Registro de ingresos y gastos con UUID de CFDI, IVA y retenciones
+- Categorías alineadas con deducciones del Art. 27 LISR
+- Motor SIFTING para clasificar gastos deducibles
+- Estado de documentación SAT (CFDI, comprobante, relación con actividad)
+- Calculadora de reserva ISR + IVA con fórmulas LISR/LIVA
+- Reportes filtrables y exportación CSV
 
 ## Ejecutar localmente
 
@@ -21,12 +29,4 @@ Aplicación web responsive para que trabajadores independientes, emprendedores y
 python3 -m http.server 8080
 ```
 
-Abra [http://localhost:8080](http://localhost:8080) en su navegador.
-
-Los datos se guardan automáticamente en el almacenamiento local del navegador (`localStorage`).
-
-## Tecnologías
-
-- HTML5, CSS3, JavaScript (ES modules)
-- Sin dependencias externas ni paso de compilación
-- Diseño responsive con barra lateral en escritorio y menú móvil
+Abra [http://localhost:8080](http://localhost:8080). Los datos se guardan en `localStorage`.

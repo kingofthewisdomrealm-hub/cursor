@@ -1,3 +1,17 @@
+import {
+  getSubtotal,
+  getIvaFromTransaction,
+  getAnnualIncomeYTD,
+  getEstimatedIvaPayable,
+  getTotalIvaCollected,
+  getTotalIvaCreditable,
+  hasCfdiSupport,
+  isValidCfdiUuid,
+  estimateIsrReserve,
+  regimeAllowsDeductions,
+  getRegime,
+} from './mexico-tax.js';
+
 export function parseAmount(value) {
   if (value == null || value === '') return null;
   const normalized = String(value).trim().replace(/\s/g, '').replace(/,/g, '.');
@@ -23,34 +37,69 @@ export function formatDate(dateStr) {
 }
 
 export function getTotalIncome(incomes) {
-  return incomes.reduce((sum, i) => sum + Number(i.amount || 0), 0);
+  return incomes.reduce((sum, i) => sum + getSubtotal(i), 0);
 }
 
 export function getTotalExpenses(expenses) {
-  return expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  return expenses.reduce((sum, e) => sum + getSubtotal(e), 0);
 }
 
-export function getDeductibleAmount(expense) {
-  const amount = Number(expense.amount || 0);
-  if (expense.classification === 'business') return amount;
+export function getDeductibleAmount(expense, regimeId = 'actividad_empresarial') {
+  if (!regimeAllowsDeductions(regimeId)) return 0;
+  const amount = getSubtotal(expense);
+  if (expense.classification === 'business') {
+    return hasCfdiSupport(expense) ? amount : amount * 0.5;
+  }
   if (expense.classification === 'mixed') {
     const pct = Number(expense.mixedCommercialPercent ?? expense.commercialUsePercent ?? 0);
-    return amount * (pct / 100);
+    const base = hasCfdiSupport(expense) ? amount : amount * 0.5;
+    return base * (pct / 100);
   }
   return 0;
 }
 
-export function getPossibleDeductions(expenses) {
-  return expenses.reduce((sum, e) => sum + getDeductibleAmount(e), 0);
+export function getPossibleDeductions(expenses, regimeId = 'actividad_empresarial') {
+  if (!regimeAllowsDeductions(regimeId)) return 0;
+  return expenses.reduce((sum, e) => sum + getDeductibleAmount(e, regimeId), 0);
 }
 
-export function getEstimatedTaxableProfit(incomes, expenses) {
-  return getTotalIncome(incomes) - getPossibleDeductions(expenses);
+export function getEstimatedTaxableProfit(incomes, expenses, regimeId = 'actividad_empresarial') {
+  const income = getTotalIncome(incomes);
+  if (!regimeAllowsDeductions(regimeId)) return income;
+  return income - getPossibleDeductions(expenses, regimeId);
 }
 
-export function getEstimatedTaxReserve(incomes, expenses, taxPercentage) {
-  const profit = getEstimatedTaxableProfit(incomes, expenses);
-  return Math.max(0, profit * (taxPercentage / 100));
+export function getTaxEstimate(incomes, expenses, settings) {
+  const regimeId = settings.taxRegime ?? 'resico';
+  const totalIncome = getTotalIncome(incomes);
+  const taxableProfit = getEstimatedTaxableProfit(incomes, expenses, regimeId);
+  const annualIncomeYTD = getAnnualIncomeYTD(incomes);
+  const isr = estimateIsrReserve({
+    regimeId,
+    totalIncome,
+    taxableProfit,
+    annualIncomeYTD,
+    manualRate: settings.taxPercentage,
+  });
+  const ivaPayable = settings.isIvaLiable
+    ? getEstimatedIvaPayable(incomes, expenses)
+    : 0;
+
+  return {
+    regime: getRegime(regimeId),
+    isr,
+    ivaPayable,
+    ivaCollected: getTotalIvaCollected(incomes),
+    ivaCreditable: getTotalIvaCreditable(expenses),
+    taxableProfit,
+    totalIncome,
+    deductions: getPossibleDeductions(expenses, regimeId),
+    totalReserve: isr.amount + ivaPayable,
+  };
+}
+
+export function getEstimatedTaxReserve(incomes, expenses, settings) {
+  return getTaxEstimate(incomes, expenses, settings).isr.amount;
 }
 
 export function getUnclassifiedExpenses(expenses) {
@@ -59,7 +108,7 @@ export function getUnclassifiedExpenses(expenses) {
 
 export function getDocStatus(expense) {
   if (expense.classification === 'personal') {
-    return { key: 'personal', label: 'Gasto personal' };
+    return { key: 'personal', label: 'Gasto no deducible (personal)' };
   }
   if (!expense.classification || expense.classification === 'unsure') {
     return { key: 'needs-clarification', label: 'Necesita aclaración' };
@@ -67,19 +116,31 @@ export function getDocStatus(expense) {
   if (expense.classification === 'mixed' && expense.mixedCommercialPercent == null) {
     return { key: 'needs-clarification', label: 'Necesita aclaración' };
   }
-  if (!expense.receiptData && (expense.classification === 'business' || expense.classification === 'mixed')) {
-    return { key: 'missing-receipt', label: 'Falta recibo' };
+  if ((expense.classification === 'business' || expense.classification === 'mixed')) {
+    if (!isValidCfdiUuid(expense.cfdiUuid) && !expense.receiptData) {
+      return { key: 'missing-cfdi', label: 'Falta CFDI' };
+    }
+    if (!expense.commercialPurpose?.trim()) {
+      return { key: 'missing-purpose', label: 'Falta relación con actividad' };
+    }
+    if (!hasCfdiSupport(expense)) {
+      return { key: 'missing-receipt', label: 'Falta comprobante' };
+    }
   }
-  if (!expense.commercialPurpose?.trim() && (expense.classification === 'business' || expense.classification === 'mixed')) {
-    return { key: 'missing-purpose', label: 'Falta propósito comercial' };
-  }
-  return { key: 'ready', label: 'Listo para revisión' };
+  return { key: 'ready', label: 'Listo para revisión SAT' };
 }
 
 export function getMissingReceiptsCount(expenses) {
   return expenses.filter((e) => {
     const status = getDocStatus(e);
-    return status.key === 'missing-receipt';
+    return status.key === 'missing-cfdi' || status.key === 'missing-receipt';
+  }).length;
+}
+
+export function getMissingCfdiCount(expenses) {
+  return expenses.filter((e) => {
+    const status = getDocStatus(e);
+    return status.key === 'missing-cfdi';
   }).length;
 }
 
@@ -93,65 +154,60 @@ export function getPreparationScore(incomes, expenses) {
   if (allTransactions === 0) {
     return {
       total: 0,
-      factors: {
-        receipts: 0,
-        classified: 0,
-        complete: 0,
-        documented: 0,
-      },
-      recommendations: ['Comience registrando sus primeros ingresos y gastos.'],
+      factors: { receipts: 0, classified: 0, complete: 0, documented: 0 },
+      recommendations: ['Comience registrando sus ingresos cobrados y gastos con CFDI.'],
     };
   }
 
   const deductibleExpenses = expenses.filter(
     (e) => e.classification === 'business' || e.classification === 'mixed'
   );
-  const receiptsScore =
+  const cfdiScore =
     deductibleExpenses.length === 0
       ? 100
-      : (deductibleExpenses.filter((e) => e.receiptData).length / deductibleExpenses.length) * 100;
+      : (deductibleExpenses.filter((e) => hasCfdiSupport(e) && isValidCfdiUuid(e.cfdiUuid)).length /
+          deductibleExpenses.length) *
+        100;
 
   const classifiedScore =
     expenses.length === 0 ? 100 : (expenses.filter((e) => e.classification).length / expenses.length) * 100;
 
   const completeScore =
-    allTransactions === 0
-      ? 0
-      : ((incomes.filter((i) => i.amount && i.date && i.source).length +
-          expenses.filter((e) => e.amount && e.date && e.merchant && e.category).length) /
-          allTransactions) *
-        100;
+    ((incomes.filter((i) => i.amount && i.date && i.source).length +
+      expenses.filter((e) => e.amount && e.date && e.merchant && e.category).length) /
+      allTransactions) *
+    100;
 
   const documentedCount =
-    incomes.filter((i) => i.amount && i.date && i.source && i.clientProject).length +
+    incomes.filter((i) => i.amount && i.date && i.source && (i.cfdiUuid || i.clientProject)).length +
     expenses.filter((e) => isExpenseComplete(e)).length;
   const documentedScore = (documentedCount / allTransactions) * 100;
 
   const total = Math.round(
-    receiptsScore * 0.3 + classifiedScore * 0.25 + completeScore * 0.2 + documentedScore * 0.25
+    cfdiScore * 0.35 + classifiedScore * 0.25 + completeScore * 0.15 + documentedScore * 0.25
   );
 
   const recommendations = [];
-  if (receiptsScore < 80) {
-    recommendations.push('Adjunte recibos a sus gastos de negocio para respaldar posibles deducciones.');
+  if (cfdiScore < 80) {
+    recommendations.push('Solicite y registre el UUID del CFDI en cada gasto deducible (requisito SAT).');
   }
   if (classifiedScore < 100) {
-    recommendations.push('Clasifique todos sus gastos en el motor SIFTING (Negocio, Personal, Mixto).');
+    recommendations.push('Clasifique gastos en SIFTING: deducible, personal o mixto según el Art. 27 LISR.');
   }
   if (completeScore < 90) {
-    recommendations.push('Complete la información faltante en sus transacciones (fechas, categorías, fuentes).');
+    recommendations.push('Complete fechas, categorías SAT y método de pago en cada movimiento.');
   }
   if (documentedScore < 75) {
-    recommendations.push('Agregue propósito comercial y datos de cliente/proyecto a más transacciones.');
+    recommendations.push('Vincule gastos a su actividad económica y cliente/proyecto para auditoría.');
   }
   if (recommendations.length === 0) {
-    recommendations.push('¡Excelente! Su documentación fiscal está muy bien organizada. Consulte con un profesional de impuestos.');
+    recommendations.push('¡Buen trabajo! Consulte con un contador para su declaración ante el SAT.');
   }
 
   return {
     total,
     factors: {
-      receipts: Math.round(receiptsScore),
+      receipts: Math.round(cfdiScore),
       classified: Math.round(classifiedScore),
       complete: Math.round(completeScore),
       documented: Math.round(documentedScore),
@@ -175,14 +231,14 @@ export function getMonthlyChartData(incomes, expenses, months = 6) {
         const id = new Date(inc.date + 'T12:00:00');
         return id.getFullYear() === year && id.getMonth() === month;
       })
-      .reduce((s, inc) => s + Number(inc.amount), 0);
+      .reduce((s, inc) => s + getSubtotal(inc), 0);
 
     const monthExpense = expenses
       .filter((exp) => {
         const ed = new Date(exp.date + 'T12:00:00');
         return ed.getFullYear() === year && ed.getMonth() === month;
       })
-      .reduce((s, exp) => s + Number(exp.amount), 0);
+      .reduce((s, exp) => s + getSubtotal(exp), 0);
 
     data.push({ label, income: monthIncome, expense: monthExpense });
   }
@@ -231,19 +287,25 @@ export function filterTransactions(incomes, expenses, filters) {
 
 export function exportToCSV(incomes, expenses) {
   const rows = [
-    ['Tipo', 'Monto', 'Fecha', 'Descripción', 'Categoría/Fuente', 'Cliente/Proyecto', 'Clasificación', 'Estado documentación', 'Notas'],
+    [
+      'Tipo', 'Monto', 'Subtotal', 'IVA', 'Fecha', 'Descripción', 'Categoría/Fuente',
+      'UUID CFDI', 'Cliente/Proyecto', 'Clasificación', 'Estado SAT', 'Notas',
+    ],
   ];
 
   incomes.forEach((i) => {
     rows.push([
       'Ingreso',
       i.amount,
+      getSubtotal(i),
+      getIvaFromTransaction(i),
       i.date,
       i.source,
       i.source,
+      i.cfdiUuid || '',
       i.clientProject || '',
       '—',
-      '—',
+      i.cfdiUuid ? 'CFDI registrado' : 'Sin CFDI',
       i.notes || '',
     ]);
   });
@@ -253,9 +315,12 @@ export function exportToCSV(incomes, expenses) {
     rows.push([
       'Gasto',
       e.amount,
+      getSubtotal(e),
+      getIvaFromTransaction(e),
       e.date,
       e.merchant,
       e.category,
+      e.cfdiUuid || '',
       e.clientProject || '',
       e.classification || 'Sin clasificar',
       status.label,
@@ -264,9 +329,7 @@ export function exportToCSV(incomes, expenses) {
   });
 
   return rows
-    .map((row) =>
-      row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-    )
+    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
     .join('\n');
 }
 

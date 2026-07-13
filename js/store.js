@@ -4,7 +4,10 @@ const DEFAULT_STATE = {
   incomes: [],
   expenses: [],
   settings: {
+    taxRegime: 'resico',
     taxPercentage: 30,
+    defaultIvaRate: '16',
+    isIvaLiable: true,
   },
 };
 
@@ -81,35 +84,37 @@ export function deleteTransaction(state, type, id) {
   saveState(state);
 }
 
+/** Categorías alineadas con deducciones autorizadas (Art. 27 LISR). */
 export const CATEGORIES = [
-  'Software y suscripciones',
-  'Equipo y tecnología',
-  'Oficina y suministros',
-  'Marketing y publicidad',
-  'Viajes y transporte',
-  'Comidas de negocio',
-  'Servicios profesionales',
-  'Seguros',
-  'Educación y capacitación',
-  'Telecomunicaciones',
   'Arrendamiento',
-  'Otros',
+  'Honorarios y servicios profesionales',
+  'Combustibles y vehículos',
+  'Viáticos y hospedaje',
+  'Telecomunicaciones e internet',
+  'Seguros y fianzas',
+  'Equipo de cómputo y software',
+  'Publicidad y marketing',
+  'Capacitación',
+  'Cuotas IMSS e INFONAVIT',
+  'Suministros de oficina',
+  'Otros gastos deducibles',
 ];
 
 export const PAYMENT_METHODS = [
-  'Transferencia',
+  'Transferencia SPEI',
   'Tarjeta de crédito',
   'Tarjeta de débito',
   'Efectivo',
-  'PayPal',
+  'PayPal / Stripe',
   'Otro',
 ];
 
 export const INCOME_SOURCES = [
-  'Servicios freelance',
+  'Servicios profesionales (honorarios)',
   'Venta de productos',
   'Consultoría',
-  'Regalías',
   'Comisiones',
-  'Otro',
+  'Regalías',
+  'Arrendamiento',
+  'Otro ingreso gravado',
 ];
