@@ -1,16 +1,21 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-jakarta",
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
 });
 
 export const metadata: Metadata = {
-  title: "ClaimPilot AI — Public Adjusting & Supplement Platform",
+  title: "StayFlow — Modern Hotel & Airbnb Management",
   description:
-    "Manage insurance claims from FNOL through settlement. AI-powered supplement analysis, damage assessment, and settlement prediction.",
+    "Property management system for hotels, hostels, vacation rentals, and Airbnb operators. Calendar-first reservations, occupancy, and revenue.",
 };
 
 export default function RootLayout({
@@ -19,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={`${jakarta.variable} ${fraunces.variable}`}>
       <body className="font-sans">{children}</body>
     </html>
   );
