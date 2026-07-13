@@ -16,6 +16,17 @@ const DEFAULT_STATE = {
     isIvaLiable: true,
     userRfc: '',
     satImportLog: [],
+    satConnect: {
+      rfc: '',
+      isConnected: false,
+      connectedAt: null,
+      cerFileName: '',
+      keyFileName: '',
+      xmlCatalog: [],
+      xmlFilter: 'all',
+      lastDownloadAt: null,
+      mode: 'simulated',
+    },
     taxProfile: {
       taxpayerType: 'unknown',
       incomeSources: [],
@@ -51,6 +62,10 @@ export function loadState() {
           ...(parsed.settings?.taxProfile || {}),
         },
         satImportLog: parsed.settings?.satImportLog ?? [],
+        satConnect: {
+          ...DEFAULT_STATE.settings.satConnect,
+          ...(parsed.settings?.satConnect || {}),
+        },
       },
     };
   } catch {

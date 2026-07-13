@@ -1352,6 +1352,158 @@ input[type="range"]::-webkit-slider-thumb {
   color: var(--text-dim);
 }
 
+/* ─── Conectar con Hacienda / SAT ─── */
+.sat-connect-credentials {
+  border-left: 3px solid var(--accent);
+}
+
+.sat-connect-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.sat-mode-badge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.sat-connect-panel {
+  border-left: 3px solid var(--info);
+}
+
+.sat-connect-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.sat-filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.sat-filter-tab {
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.sat-filter-tab:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.sat-filter-tab.active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sat-select-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.sat-xml-table-wrap {
+  max-height: 28rem;
+  overflow: auto;
+}
+
+.sat-xml-table {
+  font-size: 0.78rem;
+}
+
+.sat-xml-table th,
+.sat-xml-table td {
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.sat-xml-table .sat-concept-col {
+  white-space: normal;
+  min-width: 10rem;
+  max-width: 14rem;
+}
+
+.sat-check-col {
+  width: 2.5rem;
+  text-align: center;
+}
+
+.sat-xml-table .mono {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+}
+
+.cell-muted {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+}
+
+.sat-row-selected {
+  background: rgba(61, 214, 195, 0.06);
+}
+
+.sat-row-cancelled {
+  opacity: 0.55;
+}
+
+.sat-connect-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 2rem !important;
+}
+
+.sat-dir-pill {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+}
+
+.sat-dir-emitido {
+  background: var(--income-dim);
+  color: var(--income);
+}
+
+.sat-dir-recibido {
+  background: var(--expense-dim);
+  color: var(--expense);
+}
+
+.sat-connect-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 900px) {
+  .sat-xml-table-wrap {
+    max-height: none;
+  }
+}
+
 @media (max-width: 640px) {
   .sat-stats {
     grid-template-columns: 1fr;

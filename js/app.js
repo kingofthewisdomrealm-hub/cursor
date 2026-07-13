@@ -50,6 +50,17 @@ import {
   downloadAllStoredCfdiXml,
   downloadStoredCfdiAsZip,
 } from './sat-portal.js';
+import {
+  connectToSat,
+  downloadXmlFromSat,
+  filterXmlCatalog,
+  setAllSelected,
+  toggleXmlSelection,
+  getSelectedXml,
+  importSelectedXmlToTaxPrep,
+  disconnectSat,
+  SAT_CONNECT_MODE,
+} from './sat-connect.js';
 
 import {
   CONTRIBUYENTE_TYPES,
@@ -82,6 +93,7 @@ const VIEW_META = {
   score: { title: 'Puntuación de Preparación Fiscal', subtitle: 'Listo para declarar ante el SAT' },
   'regime-selector': { title: 'Selector de Régimen Fiscal', subtitle: 'Clasificación educativa — México' },
   'sat-download': { title: 'Descarga SAT', subtitle: 'Importar CFDI XML desde la plataforma de Hacienda' },
+  'sat-connect': { title: 'Conectar con Hacienda / SAT', subtitle: 'e.firma · descarga y selección de XML' },
 };
 
 const VIEW_NAV_ORDER = [
@@ -90,6 +102,7 @@ const VIEW_NAV_ORDER = [
   'expense',
   'sifting',
   'documentation',
+  'sat-connect',
   'sat-download',
   'regime-selector',
   'calculator',
@@ -107,6 +120,7 @@ const REGIME_SUB_VIEWS = {
 };
 
 const FISCAL_HUB_MODULES = [
+  { view: 'sat-connect', icon: '🔗', label: 'Conectar SAT', hint: 'e.firma y descarga de XML' },
   { view: 'sat-download', icon: '⬇', label: 'Descarga SAT', hint: 'Importar XML de emitidos y recibidos' },
   { view: 'regime-selector', icon: '⚖', label: 'Régimen Fiscal', hint: 'Cuestionario y recomendaciones' },
   { view: 'income', icon: '＋', label: 'Ingreso', hint: 'CFDI emitidos y cobros' },
@@ -138,6 +152,14 @@ const DOC_STATUSES = [
 
 function $(sel) { return document.querySelector(sel); }
 function $$(sel) { return document.querySelectorAll(sel); }
+
+function escHtml(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 function showToast(message, type = 'success') {
   const container = $('#toast-container');
@@ -1157,6 +1179,337 @@ function renderSatDownload() {
   `;
 }
 
+function getSatConnect() {
+  return state.settings.satConnect || {};
+}
+
+function renderSatConnectXmlRows(items) {
+  if (items.length === 0) {
+    return `<tr><td colspan="12" class="sat-connect-empty">No hay XML para mostrar con este filtro.</td></tr>`;
+  }
+  return items.map((item) => `
+    <tr class="${item.selected ? 'sat-row-selected' : ''} ${item.estado === 'Cancelado' ? 'sat-row-cancelled' : ''}">
+      <td class="sat-check-col">
+        <input type="checkbox" class="sat-xml-check" data-sat-xml-id="${escHtml(item.id)}"
+          ${item.selected ? 'checked' : ''} ${item.estado === 'Cancelado' ? 'disabled' : ''}
+          aria-label="Seleccionar XML ${escHtml(item.uuid)}">
+      </td>
+      <td>${formatDate(item.fecha)}</td>
+      <td class="mono">${escHtml(item.rfc)}</td>
+      <td>${escHtml(item.emisorNombre)}<br><span class="cell-muted">${escHtml(item.emisorRfc)}</span></td>
+      <td>${escHtml(item.receptorNombre)}<br><span class="cell-muted">${escHtml(item.receptorRfc)}</span></td>
+      <td class="sat-concept-col">${escHtml(item.concepto)}</td>
+      <td class="amount">${formatCurrency(item.subtotal)}</td>
+      <td class="amount">${formatCurrency(item.iva)}</td>
+      <td class="amount">${formatCurrency(item.total)}</td>
+      <td><span class="status-badge status-${item.direction === 'emitido' ? 'ready' : 'missing-receipt'}">${escHtml(item.tipoFactura)}</span></td>
+      <td><span class="status-badge status-${item.estado === 'Vigente' ? 'ready' : 'personal'}">${escHtml(item.estado)}</span></td>
+      <td><span class="sat-dir-pill sat-dir-${item.direction}">${item.direction === 'emitido' ? 'Emitido' : 'Recibido'}</span></td>
+    </tr>
+  `).join('');
+}
+
+/* ─── Conectar con Hacienda / SAT ─── */
+function renderSatConnect() {
+  const sc = getSatConnect();
+  const rfc = sc.rfc || state.settings.userRfc || '';
+  const filter = sc.xmlFilter || 'all';
+  const catalog = sc.xmlCatalog || [];
+  const filtered = filterXmlCatalog(catalog, filter);
+  const selectedCount = getSelectedXml(catalog).length;
+  const emitidos = catalog.filter((x) => x.direction === 'emitido').length;
+  const recibidos = catalog.filter((x) => x.direction === 'recibido').length;
+
+  const credentialsForm = `
+    <div class="card sat-connect-credentials mb-1">
+      <div class="section-title">Credenciales FIEL <span>e.firma del SAT</span></div>
+      <p class="card-hint mb-1">
+        Ingrese su RFC, certificado (.cer), llave privada (.key) y contraseña.
+        <strong>La contraseña y archivos no se guardan</strong> — solo permanecen en esta sesión.
+      </p>
+      <form id="sat-connect-form" class="form-grid">
+        <div class="field">
+          <label for="sat-connect-rfc">RFC *</label>
+          <input type="text" id="sat-connect-rfc" maxlength="13" placeholder="Ej. XAXX010101000"
+            value="${escHtml(rfc)}" style="text-transform:uppercase;font-family:var(--mono)" required>
+        </div>
+        <div class="form-row-2">
+          <div class="field">
+            <label for="sat-connect-cer">Certificado (.cer) *</label>
+            <input type="file" id="sat-connect-cer" accept=".cer" ${sc.isConnected ? '' : 'required'}>
+            ${sc.cerFileName ? `<div class="field-hint">Último: ${escHtml(sc.cerFileName)}</div>` : ''}
+          </div>
+          <div class="field">
+            <label for="sat-connect-key">Llave privada (.key) *</label>
+            <input type="file" id="sat-connect-key" accept=".key" ${sc.isConnected ? '' : 'required'}>
+            ${sc.keyFileName ? `<div class="field-hint">Último: ${escHtml(sc.keyFileName)}</div>` : ''}
+          </div>
+        </div>
+        <div class="field">
+          <label for="sat-connect-password">Contraseña de la llave *</label>
+          <input type="password" id="sat-connect-password" placeholder="Contraseña de su e.firma" autocomplete="off" required>
+        </div>
+        <div class="sat-connect-actions">
+          <button type="submit" class="btn btn-primary" id="sat-connect-btn">
+            ${sc.isConnected ? 'Reconectar con SAT' : 'Conectar con SAT'}
+          </button>
+          ${sc.isConnected ? '<button type="button" class="btn btn-secondary" id="sat-disconnect-btn">Desconectar</button>' : ''}
+        </div>
+      </form>
+      <div class="sat-mode-badge">
+        <span class="status-badge status-needs-clarification">Modo simulado</span>
+        <span class="card-hint">Conexión real preparada para integración futura con Web Service del SAT.</span>
+      </div>
+    </div>
+  `;
+
+  const connectedPanel = !sc.isConnected ? '' : `
+    <div class="card mb-1 sat-connect-panel">
+      <div class="flex-between mb-1" style="flex-wrap:wrap;gap:0.75rem">
+        <div>
+          <div class="section-title">XML del contribuyente <span>${escHtml(sc.rfc)}</span></div>
+          <p class="card-hint">
+            Conectado ${sc.connectedAt ? `desde ${formatDate(sc.connectedAt.slice(0, 10))}` : ''}
+            · ${catalog.length} comprobantes
+            · <span class="income">${emitidos} emitidos</span> · <span class="expense">${recibidos} recibidos</span>
+          </p>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="sat-download-xml-btn"
+          ${catalog.length > 0 ? '' : ''}>
+          ${catalog.length > 0 ? 'Actualizar XML del SAT' : 'Descargar XML del contribuyente'}
+        </button>
+      </div>
+
+      ${catalog.length > 0 ? `
+      <div class="sat-connect-toolbar">
+        <div class="sat-filter-tabs">
+          <button type="button" class="sat-filter-tab ${filter === 'all' ? 'active' : ''}" data-sat-filter="all">Todos (${catalog.length})</button>
+          <button type="button" class="sat-filter-tab ${filter === 'emitidos' ? 'active' : ''}" data-sat-filter="emitidos">XML emitidos (${emitidos})</button>
+          <button type="button" class="sat-filter-tab ${filter === 'recibidos' ? 'active' : ''}" data-sat-filter="recibidos">XML recibidos (${recibidos})</button>
+        </div>
+        <div class="sat-select-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="sat-select-all">Seleccionar todos</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="sat-deselect-all">Quitar selección</button>
+        </div>
+      </div>
+
+      <div class="table-wrap sat-xml-table-wrap mt-1">
+        <table class="sat-xml-table">
+          <thead>
+            <tr>
+              <th class="sat-check-col">✓</th>
+              <th>Fecha</th>
+              <th>RFC</th>
+              <th>Emisor</th>
+              <th>Receptor</th>
+              <th>Concepto</th>
+              <th>Subtotal</th>
+              <th>IVA</th>
+              <th>Total</th>
+              <th>Tipo</th>
+              <th>Estado</th>
+              <th>Dir.</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${renderSatConnectXmlRows(filtered)}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sat-connect-footer mt-1">
+        <span class="card-hint">${selectedCount} XML seleccionado(s) de ${catalog.length}</span>
+        <button type="button" class="btn btn-primary" id="sat-use-selected-btn"
+          ${selectedCount === 0 ? 'disabled' : ''}>
+          Usar XML seleccionados
+        </button>
+      </div>
+      ` : `
+      <div class="empty-state">
+        <div class="icon">📥</div>
+        <h3>Sin XML descargados</h3>
+        <p>Presione <strong>Descargar XML del contribuyente</strong> para obtener sus comprobantes (datos simulados por ahora).</p>
+      </div>
+      `}
+    </div>
+  `;
+
+  return `
+    <div class="card sat-notice mb-1">
+      <div class="section-title">Flujo de conexión <span>Hacienda / SAT</span></div>
+      <ol class="sat-steps">
+        <li>Ingresar RFC, certificado, llave y contraseña</li>
+        <li><strong>Conectar con SAT</strong></li>
+        <li>Descargar XML del contribuyente</li>
+        <li>Escoger XML (emitidos / recibidos)</li>
+        <li><strong>Usar XML seleccionados</strong> → preparar información de impuestos</li>
+      </ol>
+    </div>
+    ${credentialsForm}
+    ${connectedPanel}
+    <p class="legal-note mt-2">
+      Herramienta orientativa. La conexión real con el SAT requiere integración con el Web Service de Descarga Masiva
+      mediante un backend seguro. No almacenamos contraseñas ni llaves privadas en el dispositivo.
+    </p>
+  `;
+}
+
+function bindSatConnectEvents() {
+  const form = $('#sat-connect-form');
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const rfc = ($('#sat-connect-rfc')?.value || '').trim();
+      const cerFile = $('#sat-connect-cer')?.files?.[0];
+      const keyFile = $('#sat-connect-key')?.files?.[0];
+      const password = $('#sat-connect-password')?.value || '';
+      const btn = $('#sat-connect-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Conectando…'; }
+
+      try {
+        const result = await connectToSat({ rfc, cerFile, keyFile, password });
+        updateSettings(state, {
+          userRfc: result.rfc,
+          satConnect: {
+            ...getSatConnect(),
+            rfc: result.rfc,
+            isConnected: true,
+            connectedAt: result.connectedAt,
+            cerFileName: cerFile?.name || getSatConnect().cerFileName,
+            keyFileName: keyFile?.name || getSatConnect().keyFileName,
+            mode: SAT_CONNECT_MODE.simulated,
+          },
+        });
+        showToast(result.message);
+        render();
+      } catch (err) {
+        showToast(err.message || 'Error al conectar con el SAT', 'error');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = getSatConnect().isConnected ? 'Reconectar con SAT' : 'Conectar con SAT'; }
+      }
+    });
+  }
+
+  const disconnectBtn = $('#sat-disconnect-btn');
+  if (disconnectBtn) {
+    disconnectBtn.addEventListener('click', () => {
+      disconnectSat();
+      updateSettings(state, {
+        satConnect: {
+          ...getSatConnect(),
+          isConnected: false,
+          connectedAt: null,
+          xmlCatalog: [],
+          lastDownloadAt: null,
+        },
+      });
+      showToast('Desconectado del SAT');
+      render();
+    });
+  }
+
+  const downloadBtn = $('#sat-download-xml-btn');
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', async () => {
+      const sc = getSatConnect();
+      if (!sc.rfc) {
+        showToast('Conecte primero con el SAT', 'error');
+        return;
+      }
+      downloadBtn.disabled = true;
+      downloadBtn.textContent = 'Descargando…';
+      try {
+        const catalog = await downloadXmlFromSat(sc.rfc);
+        updateSettings(state, {
+          satConnect: {
+            ...sc,
+            xmlCatalog: catalog,
+            lastDownloadAt: new Date().toISOString(),
+          },
+        });
+        showToast(`${catalog.length} XML descargados (simulado)`);
+        render();
+      } catch (err) {
+        showToast(err.message || 'Error al descargar XML', 'error');
+      } finally {
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = getSatConnect().xmlCatalog?.length
+          ? 'Actualizar XML del SAT'
+          : 'Descargar XML del contribuyente';
+      }
+    });
+  }
+
+  $$('[data-sat-filter]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      updateSettings(state, {
+        satConnect: { ...getSatConnect(), xmlFilter: btn.dataset.satFilter },
+      });
+      render();
+    });
+  });
+
+  const selectAllBtn = $('#sat-select-all');
+  if (selectAllBtn) {
+    selectAllBtn.addEventListener('click', () => {
+      const sc = getSatConnect();
+      const catalog = [...(sc.xmlCatalog || [])];
+      const filtered = filterXmlCatalog(catalog, sc.xmlFilter || 'all');
+      filtered.forEach((item) => {
+        if (item.estado !== 'Cancelado') item.selected = true;
+      });
+      updateSettings(state, { satConnect: { ...sc, xmlCatalog: catalog } });
+      render();
+    });
+  }
+
+  const deselectAllBtn = $('#sat-deselect-all');
+  if (deselectAllBtn) {
+    deselectAllBtn.addEventListener('click', () => {
+      const sc = getSatConnect();
+      const catalog = setAllSelected([...(sc.xmlCatalog || [])], false);
+      updateSettings(state, { satConnect: { ...sc, xmlCatalog: catalog } });
+      render();
+    });
+  }
+
+  $$('.sat-xml-check').forEach((chk) => {
+    chk.addEventListener('change', () => {
+      const sc = getSatConnect();
+      const catalog = toggleXmlSelection([...(sc.xmlCatalog || [])], chk.dataset.satXmlId, chk.checked);
+      updateSettings(state, { satConnect: { ...sc, xmlCatalog: catalog } });
+      const selectedCount = getSelectedXml(catalog).length;
+      const useBtn = $('#sat-use-selected-btn');
+      const hint = document.querySelector('.sat-connect-footer .card-hint');
+      if (useBtn) useBtn.disabled = selectedCount === 0;
+      if (hint) hint.textContent = `${selectedCount} XML seleccionado(s) de ${catalog.length}`;
+      chk.closest('tr')?.classList.toggle('sat-row-selected', chk.checked);
+    });
+  });
+
+  const useSelectedBtn = $('#sat-use-selected-btn');
+  if (useSelectedBtn) {
+    useSelectedBtn.addEventListener('click', () => {
+      const sc = getSatConnect();
+      const selected = getSelectedXml(sc.xmlCatalog || []);
+      if (selected.length === 0) {
+        showToast('Seleccione al menos un XML', 'error');
+        return;
+      }
+      const result = importSelectedXmlToTaxPrep(state, sc.xmlCatalog, sc.rfc);
+      appendSatImportLog(result, 'Conexión SAT (selección)');
+      const msg = `Importados: ${result.incomes} ingresos, ${result.expenses} gastos` +
+        (result.skipped ? ` · ${result.skipped} duplicados omitidos` : '');
+      showToast(msg);
+      if (result.incomes + result.expenses > 0) {
+        setTimeout(() => navigate('dashboard'), 800);
+      } else {
+        render();
+      }
+    });
+  }
+}
+
 async function processSatFileUpload(fileList, sourceLabel) {
   const statusEl = $('#sat-import-status');
   if (!state.settings.userRfc?.trim()) {
@@ -1434,10 +1787,12 @@ function render() {
     reports: renderReports,
     score: renderScore,
     'sat-download': renderSatDownload,
+    'sat-connect': renderSatConnect,
   };
   content.innerHTML = views[currentView]();
   updateSiftingBadge();
   bindViewEvents();
+  bindSatConnectEvents();
   focusPrimaryAmountInput();
   syncNavUI();
 }
