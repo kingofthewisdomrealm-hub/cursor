@@ -15,8 +15,8 @@ const NAV_ITEMS: { id: ViewId; label: string; icon: typeof Gamepad2 }[] = [
 
 export function BottomNavigation({ currentView, onNavigate }: BottomNavigationProps) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur border-t border-slate-200 z-30 safe-bottom">
-      <div className="game-container">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur border-t border-slate-200 z-30">
+      <div className="max-w-md mx-auto w-full px-2">
         <div className="flex justify-around py-1">
           {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
             <button
