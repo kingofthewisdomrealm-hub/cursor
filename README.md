@@ -36,6 +36,15 @@ npm run preview
 
 Click **Load sample** on the input screen to analyze a demo coaching conversation instantly.
 
+## Play online
+
+**Live demo (share with friends):** https://cdn.jsdelivr.net/gh/kingofthewisdomrealm-hub/cursor@gh-pages/index.html
+
+**GitHub Pages (optional):** https://kingofthewisdomrealm-hub.github.io/cursor/
+
+> To enable GitHub Pages: [Settings → Pages](https://github.com/kingofthewisdomrealm-hub/cursor/settings/pages)
+> → Source: **Deploy from a branch** → Branch: **gh-pages** → **/ (root)** → Save.
+
 ## Roadmap
 
 - Live Session Copilot during Zoom calls
