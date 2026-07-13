@@ -1,11 +1,14 @@
 name: Deploy to GitHub Pages
 
+# Requires GitHub Pages to be enabled in repo settings:
+# https://github.com/kingofthewisdomrealm-hub/cursor/settings/pages
+# Source: GitHub Actions
+
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
-      - cursor/communicator-merge-game-960d
-  workflow_dispatch:
 
 permissions:
   contents: read
