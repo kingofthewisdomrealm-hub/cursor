@@ -5,7 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   applyLocalPlan,
+  getAnswersFromMission,
+  getCachedPlan,
   getLocalMission,
+  saveCachedPlan,
 } from "@/lib/mission-store";
 import type { MissionPlan } from "@/types/mission";
 import { CheckCircle2, Loader2, Target } from "lucide-react";
@@ -30,13 +33,18 @@ export default function PlanPage({
         return;
       }
 
-      let answers: Record<string, string> = {};
-      try {
-        const stored = sessionStorage.getItem(`mission-${id}-answers`);
-        if (stored) answers = JSON.parse(stored);
-      } catch {
-        // ignore
+      if (mission.status === "active" && mission.tasks.length > 0) {
+        router.replace(`/mission/${id}/dashboard`);
+        return;
       }
+
+      const cached = getCachedPlan(id);
+      if (cached) {
+        setPlan(cached);
+        return;
+      }
+
+      const answers = getAnswersFromMission(mission);
 
       try {
         const res = await fetch("/api/plan", {
@@ -48,23 +56,35 @@ export default function PlanPage({
           }),
         });
 
-        if (!res.ok) throw new Error("Plan generation failed");
-
         const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error ?? "Plan generation failed");
+        }
+
+        saveCachedPlan(id, data.plan);
         setPlan(data.plan);
-      } catch {
-        setError("Failed to generate plan. Please try again.");
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to generate plan. Please try again."
+        );
       }
     };
 
     generate();
-  }, [id]);
+  }, [id, router]);
 
   const handleActivate = () => {
     if (!plan) return;
     setActivating(true);
-    applyLocalPlan(id, plan);
-    router.push(`/mission/${id}/dashboard`);
+    const result = applyLocalPlan(id, plan);
+    if (result?.status === "active") {
+      router.push(`/mission/${id}/dashboard`);
+    } else {
+      setActivating(false);
+      setError("Could not activate mission. It may already be active.");
+    }
   };
 
   if (error) {
@@ -153,6 +173,11 @@ export default function PlanPage({
               <div className="flex items-center gap-2 mb-1">
                 <CheckCircle2 className="h-3.5 w-3.5 text-zinc-600" />
                 <h3 className="font-semibold text-white">{task.title}</h3>
+                {task.approval_required && (
+                  <span className="text-[10px] text-purple-400 uppercase tracking-wider">
+                    Approval needed
+                  </span>
+                )}
               </div>
               <p className="text-sm text-zinc-500 ml-5">{task.expected_result}</p>
             </div>

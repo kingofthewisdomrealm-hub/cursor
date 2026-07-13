@@ -41,20 +41,13 @@ export default function ClarifyPage({
     }));
 
     const mission = getLocalMission(id);
-    if (mission) {
-      updateLocalQuestions(id, updatedQuestions);
-      updateLocalMission(id, { status: "planning" });
+    if (!mission) {
+      setSubmitting(false);
+      return;
     }
 
-    const answerMap: Record<string, string> = {};
-    updatedQuestions.forEach((q) => {
-      if (q.answer) answerMap[q.question] = q.answer;
-    });
-
-    sessionStorage.setItem(
-      `mission-${id}-answers`,
-      JSON.stringify(answerMap)
-    );
+    updateLocalQuestions(id, updatedQuestions);
+    updateLocalMission(id, { status: "planning", cached_plan: null });
 
     router.push(`/mission/${id}/plan`);
   };
@@ -104,7 +97,7 @@ export default function ClarifyPage({
         disabled={submitting || !allRequiredAnswered}
         className="mt-8 w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-cyan-500 px-6 py-4 font-bold text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:from-cyan-500 hover:to-cyan-400"
       >
-        {submitting ? "Generating Plan..." : "Generate Mission Plan"}
+        {submitting ? "Continue to Plan..." : "Generate Mission Plan"}
         <ArrowRight className="h-4 w-4" />
       </button>
     </div>

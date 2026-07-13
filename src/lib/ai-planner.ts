@@ -45,9 +45,16 @@ function getOpenAI(): OpenAI | null {
   return new OpenAI({ apiKey: key });
 }
 
-function parseJson<T>(text: string): T {
-  const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-  return JSON.parse(cleaned) as T;
+function parseJson<T>(text: string): T | null {
+  try {
+    const cleaned = text
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+    return JSON.parse(cleaned) as T;
+  } catch {
+    return null;
+  }
 }
 
 export function generateDemoPlan(outcome: string, answers?: Record<string, string>): MissionPlan {
@@ -285,7 +292,7 @@ export async function generateClarifyingQuestions(outcome: string): Promise<stri
   if (!content) return generateDemoQuestions(outcome);
 
   const parsed = parseJson<{ questions: string[] }>(content);
-  return parsed.questions.slice(0, 5);
+  return parsed?.questions?.slice(0, 5) ?? generateDemoQuestions(outcome);
 }
 
 export async function generateMissionPlan(
@@ -315,7 +322,8 @@ export async function generateMissionPlan(
   const content = response.choices[0]?.message?.content;
   if (!content) return generateDemoPlan(outcome, answers);
 
-  return parseJson<MissionPlan>(content);
+  const parsed = parseJson<MissionPlan>(content);
+  return parsed ?? generateDemoPlan(outcome, answers);
 }
 
 export async function generateLearningUpdate(
@@ -387,5 +395,6 @@ export async function generateDailyBriefing(
   const content = response.choices[0]?.message?.content;
   if (!content) return generateDemoBriefing();
 
-  return parseJson<DailyBriefing>(content);
+  const parsed = parseJson<DailyBriefing>(content);
+  return parsed ?? generateDemoBriefing();
 }

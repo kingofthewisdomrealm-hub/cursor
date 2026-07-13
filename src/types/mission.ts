@@ -150,4 +150,5 @@ export interface MissionWithRelations extends Mission {
   tasks: Task[];
   recommendations: AgentRecommendation[];
   task_results: TaskResult[];
+  cached_plan?: MissionPlan | null;
 }

@@ -35,15 +35,23 @@ export default function HomePage() {
         body: JSON.stringify({ outcome: outcome.trim() }),
       });
 
-      if (!res.ok) throw new Error("Failed to launch mission");
-
       const data = await res.json();
-      const mission = createLocalMission(data.outcome);
+      if (!res.ok) {
+        throw new Error(data.error ?? "Failed to launch mission");
+      }
+
+      const mission = createLocalMission(data.outcome, data.missionId);
 
       setLocalQuestions(
         mission.id,
         data.questions.map(
-          (q: { question: string; sort_order: number; required: boolean }) => ({
+          (q: {
+            id: string;
+            question: string;
+            sort_order: number;
+            required: boolean;
+          }) => ({
+            id: q.id,
             question: q.question,
             sort_order: q.sort_order,
             required: q.required,
@@ -52,8 +60,11 @@ export default function HomePage() {
       );
 
       router.push(`/mission/${mission.id}/clarify`);
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Something went wrong. Please try again."
+      );
+    } finally {
       setLoading(false);
     }
   };

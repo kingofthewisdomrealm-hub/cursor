@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from "react";
 import { useMission } from "@/hooks/useMission";
 import { MissionSubNav } from "@/components/MissionSubNav";
+import { generateDemoBriefing } from "@/lib/ai-planner";
 import type { DailyBriefing } from "@/types/mission";
 import { Sun, Target, Lightbulb } from "lucide-react";
 
@@ -38,9 +39,11 @@ export default function BriefingPage({
         if (res.ok) {
           const data = await res.json();
           setBriefing(data.briefing);
+        } else {
+          setBriefing(generateDemoBriefing());
         }
       } catch {
-        // fallback below
+        setBriefing(generateDemoBriefing());
       } finally {
         setLoadingBriefing(false);
       }

@@ -6,7 +6,11 @@ import { useMission } from "@/hooks/useMission";
 import {
   addLocalRecommendation,
   addLocalTaskResult,
+  advanceAfterTask,
+  canApproveTask,
+  canCompleteTask,
   getNextTask,
+  isTaskUnlocked,
   updateLocalMission,
   updateLocalTask,
 } from "@/lib/mission-store";
@@ -16,6 +20,7 @@ import type { TaskStatus } from "@/types/mission";
 import {
   Check,
   Edit3,
+  Lock,
   SkipForward,
   ThumbsUp,
   AlertTriangle,
@@ -28,7 +33,7 @@ export default function TaskDetailPage({
 }) {
   const { id, taskId } = use(params);
   const router = useRouter();
-  const { mission, refresh } = useMission(id);
+  const { mission, loading, refresh } = useMission(id);
   const [editing, setEditing] = useState(false);
   const [editedContent, setEditedContent] = useState("");
   const [showResults, setShowResults] = useState(false);
@@ -38,6 +43,14 @@ export default function TaskDetailPage({
     registrations_count: 0,
     top_objection: "",
   });
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-500/30 border-t-cyan-400" />
+      </div>
+    );
+  }
 
   if (!mission) {
     return (
@@ -56,6 +69,10 @@ export default function TaskDetailPage({
     );
   }
 
+  const unlocked = isTaskUnlocked(mission, task);
+  const showApprove = canApproveTask(task);
+  const showComplete = canCompleteTask(mission, task);
+
   const updateStatus = (status: TaskStatus) => {
     updateLocalTask(id, taskId, { status });
     refresh();
@@ -66,19 +83,22 @@ export default function TaskDetailPage({
   };
 
   const handleComplete = () => {
+    if (!showComplete) return;
     updateStatus("completed");
     setShowResults(true);
   };
 
   const handleSkip = () => {
     updateStatus("skipped");
-    const next = getNextTask({
+    advanceAfterTask(id, taskId);
+    refresh();
+    const updated = getNextTask({
       ...mission,
       tasks: mission.tasks.map((t) =>
         t.id === taskId ? { ...t, status: "skipped" as TaskStatus } : t
       ),
     });
-    if (next) router.push(`/mission/${id}/task/${next.id}`);
+    if (updated) router.push(`/mission/${id}/task/${updated.id}`);
     else router.push(`/mission/${id}/dashboard`);
   };
 
@@ -126,14 +146,16 @@ export default function TaskDetailPage({
       // non-blocking
     }
 
-    const next = getNextTask({
+    advanceAfterTask(id, taskId);
+    refresh();
+
+    const updatedMission = {
       ...mission,
       tasks: mission.tasks.map((t) =>
         t.id === taskId ? { ...t, status: "completed" as TaskStatus } : t
       ),
-    });
-
-    refresh();
+    };
+    const next = getNextTask(updatedMission);
 
     if (next) router.push(`/mission/${id}/task/${next.id}`);
     else router.push(`/mission/${id}/results`);
@@ -150,6 +172,13 @@ export default function TaskDetailPage({
           <p className="mt-2 text-zinc-400">{task.description}</p>
         )}
       </div>
+
+      {!unlocked && (
+        <div className="mb-6 flex items-center gap-2 rounded-lg border border-zinc-700/50 bg-zinc-900/40 px-4 py-3 text-sm text-zinc-400">
+          <Lock className="h-4 w-4 shrink-0" />
+          Complete earlier tasks before starting this one.
+        </div>
+      )}
 
       {!showResults ? (
         <>
@@ -193,7 +222,7 @@ export default function TaskDetailPage({
             <InfoBox label="Estimated impact" value={task.estimated_impact ?? ""} />
           </div>
 
-          {task.approval_required && task.status === "waiting_for_approval" && (
+          {task.approval_required && showApprove && (
             <div className="mb-4 flex items-center gap-2 rounded-lg border border-purple-500/30 bg-purple-950/20 px-4 py-3 text-sm text-purple-300">
               <AlertTriangle className="h-4 w-4 shrink-0" />
               This action affects the outside world and requires your approval.
@@ -201,7 +230,7 @@ export default function TaskDetailPage({
           )}
 
           <div className="grid grid-cols-2 gap-3">
-            {task.approval_required && (
+            {showApprove && (
               <ActionButton
                 onClick={handleApprove}
                 icon={<ThumbsUp className="h-4 w-4" />}
@@ -209,24 +238,29 @@ export default function TaskDetailPage({
                 variant="primary"
               />
             )}
-            <ActionButton
-              onClick={() => {
-                setEditedContent(task.suggested_content ?? "");
-                setEditing(true);
-              }}
-              icon={<Edit3 className="h-4 w-4" />}
-              label="Edit"
-            />
+            {task.suggested_content && (
+              <ActionButton
+                onClick={() => {
+                  setEditedContent(task.suggested_content ?? "");
+                  setEditing(true);
+                }}
+                icon={<Edit3 className="h-4 w-4" />}
+                label="Edit"
+                disabled={!unlocked}
+              />
+            )}
             <ActionButton
               onClick={handleComplete}
               icon={<Check className="h-4 w-4" />}
               label="Complete"
               variant="success"
+              disabled={!showComplete}
             />
             <ActionButton
               onClick={handleSkip}
               icon={<SkipForward className="h-4 w-4" />}
               label="Skip"
+              disabled={!unlocked}
             />
           </div>
         </>
@@ -322,11 +356,13 @@ function ActionButton({
   icon,
   label,
   variant,
+  disabled,
 }: {
   onClick: () => void;
   icon: React.ReactNode;
   label: string;
   variant?: "primary" | "success";
+  disabled?: boolean;
 }) {
   const styles = {
     primary: "bg-cyan-600/20 border-cyan-500/40 text-cyan-300 hover:bg-cyan-600/30",
@@ -344,7 +380,8 @@ function ActionButton({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition-colors ${style}`}
+      disabled={disabled}
+      className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${style}`}
     >
       {icon}
       {label}
