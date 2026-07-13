@@ -1,22 +1,16 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
-import { MissionNav } from "@/components/MissionNav";
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
 });
 
-const jetbrains = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-});
-
 export const metadata: Metadata = {
-  title: "Outcome Agent — Mission Control",
+  title: "ClaimPilot AI — Public Adjusting & Supplement Platform",
   description:
-    "Transform vague outcomes into executable missions. Your AI project manager for achieving real results.",
+    "Manage insurance claims from FNOL through settlement. AI-powered supplement analysis, damage assessment, and settlement prediction.",
 };
 
 export default function RootLayout({
@@ -25,11 +19,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrains.variable}`}>
-      <body className="font-sans">
-        <MissionNav />
-        <main className="mission-grid min-h-screen">{children}</main>
-      </body>
+    <html lang="en" className={inter.variable}>
+      <body className="font-sans">{children}</body>
     </html>
   );
 }

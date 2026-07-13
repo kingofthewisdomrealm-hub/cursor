@@ -2,12 +2,10 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  --color-mission-bg: #0a0a0f;
-  --color-mission-card: #12121a;
-  --color-mission-border: #1e1e2e;
-  --color-mission-accent: #06b6d4;
-  --color-mission-glow: #22d3ee;
+  --color-cp-bg: #09090b;
+  --color-cp-card: #18181b;
+  --color-cp-border: #27272a;
+  --color-cp-accent: #3b82f6;
 }
 
 @layer base {
@@ -16,33 +14,48 @@
   }
 
   body {
-    @apply bg-[#0a0a0f] text-zinc-100 antialiased;
+    @apply bg-[#09090b] text-zinc-100 antialiased;
     background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(6, 182, 212, 0.12), transparent),
-      radial-gradient(ellipse 60% 40% at 100% 100%, rgba(139, 92, 246, 0.08), transparent);
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.08), transparent),
+      radial-gradient(ellipse 60% 40% at 100% 100%, rgba(99, 102, 241, 0.06), transparent);
     min-height: 100vh;
   }
 
-  ::selection {
-    @apply bg-cyan-500/30 text-white;
-  }
-}
-
-@layer utilities {
-  .mission-grid {
+  html.light body {
+    @apply bg-zinc-50 text-zinc-900;
     background-image:
-      linear-gradient(rgba(6, 182, 212, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.05), transparent);
   }
 
-  .glow-border {
-    box-shadow:
-      0 0 0 1px rgba(6, 182, 212, 0.2),
-      0 0 20px rgba(6, 182, 212, 0.05);
+  html.light .border-zinc-800\/80 {
+    border-color: rgba(228, 228, 231, 0.8);
   }
 
-  .glow-text {
-    text-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+  html.light .bg-zinc-900\/40,
+  html.light .bg-zinc-900\/60 {
+    background-color: rgba(255, 255, 255, 0.8);
+  }
+
+  html.light .bg-zinc-950\/80,
+  html.light .bg-zinc-950\/95 {
+    background-color: rgba(255, 255, 255, 0.95);
+  }
+
+  html.light .text-white {
+    color: #18181b;
+  }
+
+  html.light .text-zinc-300,
+  html.light .text-zinc-200 {
+    color: #3f3f46;
+  }
+
+  html.light .text-zinc-400,
+  html.light .text-zinc-500 {
+    color: #71717a;
+  }
+
+  ::selection {
+    @apply bg-blue-500/30 text-white;
   }
 }
