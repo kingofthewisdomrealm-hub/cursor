@@ -14,6 +14,8 @@ const DEFAULT_STATE = {
     taxPercentage: 30,
     defaultIvaRate: '16',
     isIvaLiable: true,
+    userRfc: '',
+    satImportLog: [],
     taxProfile: {
       taxpayerType: 'unknown',
       incomeSources: [],
@@ -44,6 +46,11 @@ export function loadState() {
         ...parsed.settings,
         taxRegime,
         contributorType,
+        taxProfile: {
+          ...DEFAULT_STATE.settings.taxProfile,
+          ...(parsed.settings?.taxProfile || {}),
+        },
+        satImportLog: parsed.settings?.satImportLog ?? [],
       },
     };
   } catch {

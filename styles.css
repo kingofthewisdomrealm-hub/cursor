@@ -1096,3 +1096,197 @@ input[type="range"]::-webkit-slider-thumb {
   gap: 0.5rem;
   margin-top: 0.75rem;
 }
+
+/* ─── Fiscal hub & SAT download ─── */
+.fiscal-hub {
+  background: linear-gradient(135deg, rgba(61, 214, 195, 0.06), rgba(96, 165, 250, 0.05));
+  border-color: var(--border-strong);
+}
+
+.hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  gap: 0.65rem;
+}
+
+.hub-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding: 0.85rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+}
+
+.hub-card:hover {
+  border-color: var(--accent-dim);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.hub-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.hub-card strong {
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+.hub-hint {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  line-height: 1.35;
+}
+
+.hub-badge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(61, 214, 195, 0.15);
+  color: var(--accent);
+}
+
+.hub-badge.warning {
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--warning);
+}
+
+.sat-notice {
+  border-left: 3px solid var(--info);
+}
+
+.sat-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.sat-stats strong {
+  display: block;
+  font-size: 1.5rem;
+  font-family: var(--mono);
+  margin-top: 0.15rem;
+}
+
+.sat-stats strong.income { color: var(--income); }
+.sat-stats strong.expense { color: var(--expense); }
+
+.sat-portals {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.5rem;
+}
+
+.sat-portal-link {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.15rem 1rem;
+  padding: 0.85rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease;
+}
+
+.sat-portal-link:hover {
+  border-color: var(--accent-dim);
+}
+
+.sat-portal-link strong {
+  grid-column: 1;
+  font-size: 0.92rem;
+}
+
+.sat-portal-link span:not(.sat-portal-cta) {
+  grid-column: 1;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.sat-portal-cta {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.sat-steps {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.sat-upload-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.sat-upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 1.25rem 0.75rem;
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.sat-upload-zone:hover {
+  border-color: var(--accent-dim);
+  background: rgba(61, 214, 195, 0.05);
+}
+
+.sat-upload-icon {
+  font-size: 1.75rem;
+}
+
+.sat-upload-zone strong {
+  font-size: 0.88rem;
+}
+
+.sat-upload-zone span:last-child {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+@media (max-width: 640px) {
+  .sat-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .sat-portal-link {
+    grid-template-columns: 1fr;
+  }
+
+  .sat-portal-cta {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: start;
+    margin-top: 0.25rem;
+  }
+}

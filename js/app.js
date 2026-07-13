@@ -41,6 +41,15 @@ import { getRegimeById } from './regime-selector/catalog-store.js';
 import { buildTaxProfileFromAnswers, normalizeQuestionnaireAnswers } from './regime-selector/recommend.js';
 import { parseCfdiXml, readFileAsText, isCfdiXml } from './cfdi-xml.js';
 import { exportToXml, exportFullBackupXml, importFromXml, downloadXml } from './xml-export.js';
+import {
+  SAT_PORTALS,
+  extractXmlFromSatPackage,
+  extractXmlFromFileList,
+  importSatXmlBatch,
+  getExistingCfdiUuids,
+  downloadAllStoredCfdiXml,
+  downloadStoredCfdiAsZip,
+} from './sat-portal.js';
 
 import {
   CONTRIBUYENTE_TYPES,
@@ -72,7 +81,20 @@ const VIEW_META = {
   reports: { title: 'Reportes', subtitle: 'Exportar e importar en formato XML' },
   score: { title: 'Puntuación de Preparación Fiscal', subtitle: 'Listo para declarar ante el SAT' },
   'regime-selector': { title: 'Selector de Régimen Fiscal', subtitle: 'Clasificación educativa — México' },
+  'sat-download': { title: 'Descarga SAT', subtitle: 'Importar CFDI XML desde la plataforma de Hacienda' },
 };
+
+const FISCAL_HUB_MODULES = [
+  { view: 'sat-download', icon: '⬇', label: 'Descarga SAT', hint: 'Importar XML de emitidos y recibidos' },
+  { view: 'regime-selector', icon: '⚖', label: 'Régimen Fiscal', hint: 'Cuestionario y recomendaciones' },
+  { view: 'income', icon: '＋', label: 'Ingreso', hint: 'CFDI emitidos y cobros' },
+  { view: 'expense', icon: '－', label: 'Gasto', hint: 'CFDI recibidos y deducciones' },
+  { view: 'sifting', icon: '◎', label: 'SIFTING', hint: 'Clasificar gastos Art. 27 LISR' },
+  { view: 'documentation', icon: '☰', label: 'Documentación', hint: 'Estado CFDI y comprobantes' },
+  { view: 'calculator', icon: '％', label: 'ISR + IVA', hint: 'Reserva fiscal estimada' },
+  { view: 'reports', icon: '↗', label: 'Reportes XML', hint: 'Exportar e importar respaldo' },
+  { view: 'score', icon: '★', label: 'Preparación', hint: 'Puntuación para declarar' },
+];
 
 const MONTHS = [
   { value: '', label: 'Todos los meses' },
@@ -308,6 +330,49 @@ async function processUploadedFile(file, type = 'expense') {
   return null;
 }
 
+function countSatImported() {
+  const incomes = state.incomes.filter((i) => i.satImported).length;
+  const expenses = state.expenses.filter((e) => e.satImported).length;
+  const storedXml = downloadAllStoredCfdiXml(state).length;
+  return { incomes, expenses, total: incomes + expenses, storedXml };
+}
+
+function appendSatImportLog(result, source) {
+  const log = [...(state.settings.satImportLog || [])];
+  log.unshift({
+    at: new Date().toISOString(),
+    source,
+    incomes: result.incomes,
+    expenses: result.expenses,
+    skipped: result.skipped,
+    errors: result.errors?.length || 0,
+  });
+  if (log.length > 20) log.length = 20;
+  updateSettings(state, { satImportLog: log });
+}
+
+function renderFiscalHub() {
+  const sat = countSatImported();
+  const unclassified = getUnclassifiedExpenses(state.expenses).length;
+  return `
+    <div class="card fiscal-hub mb-1">
+      <div class="section-title">Centro fiscal <span>todas las herramientas</span></div>
+      <p class="card-hint mb-1">Flujo recomendado: descargue XML en el SAT → impórtelos aquí → clasifique en SIFTING → revise ISR+IVA y reportes.</p>
+      <div class="hub-grid">
+        ${FISCAL_HUB_MODULES.map((m) => `
+          <button type="button" class="hub-card" data-nav="${m.view}">
+            <span class="hub-icon">${m.icon}</span>
+            <strong>${m.label}</strong>
+            <span class="hub-hint">${m.hint}</span>
+            ${m.view === 'sat-download' && sat.total > 0 ? `<span class="hub-badge">${sat.total} del SAT</span>` : ''}
+            ${m.view === 'sifting' && unclassified > 0 ? `<span class="hub-badge warning">${unclassified} pendientes</span>` : ''}
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
 function readCfdiAndIvaFromForm(fd, prefix = '') {
   const cfdiUuid = String(fd.get('cfdiUuid') || '').trim();
   const includesIva = fd.get('includesIva') === 'on';
@@ -337,6 +402,7 @@ function renderDashboard() {
   const regime = getRegime(regimeId);
 
   return `
+    ${renderFiscalHub()}
     ${state.settings.taxProfile?.selectedRegimeName ? `
     <div class="card mb-1" style="border-color:var(--accent-dim)">
       <div class="flex-between">
@@ -859,6 +925,156 @@ function renderCalculator() {
   `;
 }
 
+/* ─── SAT Download ─── */
+function renderSatDownload() {
+  const userRfc = state.settings.userRfc || '';
+  const sat = countSatImported();
+  const log = (state.settings.satImportLog || []).slice(0, 8);
+
+  return `
+    <div class="card sat-notice mb-1">
+      <div class="section-title">Plataforma del SAT <span>Hacienda</span></div>
+      <p class="card-hint">
+        Por seguridad, el SAT exige iniciar sesión con RFC y contraseña o e.firma. Esta app no puede conectarse directamente;
+        usted descarga los XML en el portal oficial y los importa aquí para registrar ingresos y gastos automáticamente.
+      </p>
+    </div>
+
+    <div class="grid grid-2 mb-1">
+      <div class="card">
+        <div class="section-title">1. Su RFC <span>clasificación automática</span></div>
+        <div class="field">
+          <label for="sat-user-rfc">RFC del contribuyente</label>
+          <input type="text" id="sat-user-rfc" maxlength="13" placeholder="Ej. XAXX010101000"
+            value="${userRfc}" style="text-transform:uppercase;font-family:var(--mono)">
+          <div class="field-hint">Con su RFC distinguimos CFDI emitidos (ingresos) de recibidos (gastos).</div>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="sat-save-rfc">Guardar RFC</button>
+      </div>
+      <div class="card">
+        <div class="section-title">Resumen importado <span>desde SAT</span></div>
+        <div class="sat-stats">
+          <div><span class="card-label">Ingresos SAT</span><strong class="income">${sat.incomes}</strong></div>
+          <div><span class="card-label">Gastos SAT</span><strong class="expense">${sat.expenses}</strong></div>
+          <div><span class="card-label">XML almacenados</span><strong>${sat.storedXml}</strong></div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm mt-1" id="sat-export-zip"
+          ${sat.storedXml === 0 ? 'disabled' : ''}>Descargar XML almacenados (ZIP)</button>
+      </div>
+    </div>
+
+    <div class="card mb-1">
+      <div class="section-title">2. Portales oficiales del SAT <span>abrir en nueva pestaña</span></div>
+      <div class="sat-portals">
+        ${Object.entries(SAT_PORTALS).map(([key, p]) => `
+          <a class="sat-portal-link" href="${p.url}" target="_blank" rel="noopener noreferrer" data-sat-portal="${key}">
+            <strong>${p.label}</strong>
+            <span>${p.description}</span>
+            <span class="sat-portal-cta">Ir al SAT →</span>
+          </a>
+        `).join('')}
+      </div>
+      <ol class="sat-steps mt-1">
+        <li>Ingrese al <strong>Portal de Consulta CFDI</strong> o solicite <strong>Descarga Masiva</strong> en sat.gob.mx.</li>
+        <li>Descargue el paquete ZIP con XML de emitidos y recibidos (o archivos XML individuales).</li>
+        <li>Regrese aquí y suba el ZIP o la carpeta con los XML en el paso 3.</li>
+      </ol>
+    </div>
+
+    <div class="card mb-1">
+      <div class="section-title">3. Importar XML descargados <span>ZIP o carpeta</span></div>
+      <div class="sat-upload-grid">
+        <label class="sat-upload-zone">
+          <input type="file" id="sat-upload-zip" accept=".zip,.xml,application/zip,application/xml,text/xml" hidden>
+          <span class="sat-upload-icon">📦</span>
+          <strong>Paquete ZIP del SAT</strong>
+          <span>Descarga masiva o ZIP con varios XML</span>
+        </label>
+        <label class="sat-upload-zone">
+          <input type="file" id="sat-upload-folder" webkitdirectory directory multiple hidden>
+          <span class="sat-upload-icon">📁</span>
+          <strong>Carpeta de XML</strong>
+          <span>Seleccione la carpeta extraída del ZIP</span>
+        </label>
+        <label class="sat-upload-zone">
+          <input type="file" id="sat-upload-xml" accept=".xml,application/xml,text/xml" multiple hidden>
+          <span class="sat-upload-icon">🧾</span>
+          <strong>Archivos XML sueltos</strong>
+          <span>Uno o varios comprobantes</span>
+        </label>
+      </div>
+      <div class="flex-between mt-1" style="flex-wrap:wrap;gap:0.5rem">
+        <button type="button" class="btn btn-secondary btn-sm" id="sat-demo-import">Probar con XML de ejemplo</button>
+        <span id="sat-import-status" class="card-hint"></span>
+      </div>
+    </div>
+
+    ${log.length > 0 ? `
+    <div class="card">
+      <div class="section-title">Historial de importaciones <span>últimas ${log.length}</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Fecha</th><th>Origen</th><th>Ingresos</th><th>Gastos</th><th>Omitidos</th><th>Errores</th></tr></thead>
+          <tbody>
+            ${log.map((entry) => `
+              <tr>
+                <td>${formatDate(entry.at.slice(0, 10))}</td>
+                <td>${entry.source}</td>
+                <td class="income">${entry.incomes}</td>
+                <td class="expense">${entry.expenses}</td>
+                <td>${entry.skipped}</td>
+                <td>${entry.errors || 0}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>` : ''}
+
+    <p class="legal-note mt-2">Los enlaces dirigen a sitios oficiales del SAT. Verifique siempre la autenticidad de los comprobantes. No almacenamos credenciales del SAT.</p>
+  `;
+}
+
+async function processSatFileUpload(fileList, sourceLabel) {
+  const statusEl = $('#sat-import-status');
+  if (!state.settings.userRfc?.trim()) {
+    showToast('Configure su RFC antes de importar para clasificar ingresos y gastos', 'error');
+    return;
+  }
+  if (statusEl) statusEl.textContent = 'Leyendo archivos…';
+
+  try {
+    const files = [...fileList];
+    let xmlItems = [];
+    if (files.length === 1 && (files[0].name.endsWith('.zip') || files[0].name.endsWith('.xml'))) {
+      xmlItems = await extractXmlFromSatPackage(files[0]);
+    } else {
+      xmlItems = await extractXmlFromFileList(files);
+    }
+
+    if (xmlItems.length === 0) {
+      showToast('No se encontraron CFDI XML válidos en los archivos', 'error');
+      if (statusEl) statusEl.textContent = '';
+      return;
+    }
+
+    const existing = getExistingCfdiUuids(state);
+    const result = importSatXmlBatch(state, xmlItems, state.settings.userRfc, existing);
+    appendSatImportLog(result, sourceLabel);
+
+    const msg = `Importados: ${result.incomes} ingresos, ${result.expenses} gastos` +
+      (result.skipped ? ` · ${result.skipped} duplicados omitidos` : '') +
+      (result.errors.length ? ` · ${result.errors.length} errores` : '');
+    showToast(msg);
+    if (statusEl) statusEl.textContent = msg;
+    if (result.errors.length) console.warn('SAT import errors:', result.errors);
+    render();
+  } catch (err) {
+    showToast(err.message || 'Error al importar XML del SAT', 'error');
+    if (statusEl) statusEl.textContent = '';
+  }
+}
+
 /* ─── Reports ─── */
 function renderReports() {
   const years = getAvailableYears(state.incomes, state.expenses);
@@ -904,10 +1120,12 @@ function renderReports() {
       <div class="field" style="align-self:flex-end;display:flex;gap:0.5rem;flex-wrap:wrap">
         <button class="btn btn-primary btn-sm" id="export-xml" ${totalRows === 0 ? 'disabled' : ''}>Exportar XML</button>
         <button class="btn btn-secondary btn-sm" id="export-backup-xml">Respaldo XML completo</button>
+        <button class="btn btn-secondary btn-sm" id="export-cfdi-zip">CFDI SAT (ZIP)</button>
         <label class="btn btn-secondary btn-sm" style="cursor:pointer;margin:0">
           Importar XML
           <input type="file" id="import-xml" accept=".xml,application/xml" hidden>
         </label>
+        <button class="btn btn-secondary btn-sm" data-nav="sat-download">Descarga SAT →</button>
       </div>
     </div>
 
@@ -1088,6 +1306,7 @@ function render() {
     calculator: renderCalculator,
     reports: renderReports,
     score: renderScore,
+    'sat-download': renderSatDownload,
   };
   content.innerHTML = views[currentView]();
   updateSiftingBadge();
@@ -1431,6 +1650,82 @@ function bindViewEvents() {
       const xml = exportFullBackupXml(state);
       downloadXml(xml, `tax-power-mapper-respaldo-${new Date().toISOString().slice(0, 10)}.xml`);
       showToast('Respaldo XML completo exportado');
+    });
+  }
+
+  const satSaveRfc = $('#sat-save-rfc');
+  if (satSaveRfc) {
+    satSaveRfc.addEventListener('click', () => {
+      const rfc = ($('#sat-user-rfc')?.value || '').trim().toUpperCase();
+      if (rfc && (rfc.length < 12 || rfc.length > 13)) {
+        showToast('RFC debe tener 12 (moral) o 13 (física) caracteres', 'error');
+        return;
+      }
+      updateSettings(state, { userRfc: rfc });
+      showToast(rfc ? `RFC guardado: ${rfc}` : 'RFC eliminado');
+    });
+  }
+
+  const satUploadZip = $('#sat-upload-zip');
+  if (satUploadZip) {
+    satUploadZip.addEventListener('change', async () => {
+      if (!satUploadZip.files?.length) return;
+      await processSatFileUpload(satUploadZip.files, 'ZIP SAT');
+      satUploadZip.value = '';
+    });
+  }
+
+  const satUploadFolder = $('#sat-upload-folder');
+  if (satUploadFolder) {
+    satUploadFolder.addEventListener('change', async () => {
+      if (!satUploadFolder.files?.length) return;
+      await processSatFileUpload(satUploadFolder.files, 'Carpeta XML');
+      satUploadFolder.value = '';
+    });
+  }
+
+  const satUploadXml = $('#sat-upload-xml');
+  if (satUploadXml) {
+    satUploadXml.addEventListener('change', async () => {
+      if (!satUploadXml.files?.length) return;
+      await processSatFileUpload(satUploadXml.files, 'XML sueltos');
+      satUploadXml.value = '';
+    });
+  }
+
+  const satExportZip = $('#sat-export-zip');
+  if (satExportZip) {
+    satExportZip.addEventListener('click', async () => {
+      const count = await downloadStoredCfdiAsZip(state);
+      if (count === 0) showToast('No hay XML de CFDI almacenados', 'error');
+      else showToast(`${count} XML exportados en ZIP`);
+    });
+  }
+
+  const satDemoImport = $('#sat-demo-import');
+  if (satDemoImport) {
+    satDemoImport.addEventListener('click', async () => {
+      try {
+        const res = await fetch('samples/cfdi-ejemplo.xml');
+        if (!res.ok) throw new Error('No se pudo cargar el ejemplo');
+        const text = await res.text();
+        const existing = getExistingCfdiUuids(state);
+        const result = importSatXmlBatch(state, [{ name: 'cfdi-ejemplo.xml', xml: text }], state.settings.userRfc, existing);
+        appendSatImportLog(result, 'Ejemplo demo');
+        showToast(`Demo: ${result.incomes} ingreso(s), ${result.expenses} gasto(s)`);
+        render();
+      } catch (err) {
+        showToast(err.message || 'Error en importación demo', 'error');
+      }
+    });
+  }
+
+  const exportCfdiZipBtn = $('#export-cfdi-zip');
+  if (exportCfdiZipBtn) {
+    exportCfdiZipBtn.addEventListener('click', async () => {
+      const count = await downloadStoredCfdiAsZip(state);
+      if (count === 0) showToast('No hay XML de CFDI almacenados', 'error');
+      else showToast(`${count} CFDI exportados en ZIP`);
     });
   }
 
