@@ -14,7 +14,7 @@ body,
 
 body {
   font-family: var(--font-sans);
-  background: linear-gradient(165deg, #f0f4ff 0%, #e8f0fe 40%, #fef3e2 100%);
+  background: linear-gradient(165deg, #ecfdf5 0%, #f0fdfa 35%, #fefce8 100%);
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -24,6 +24,15 @@ body {
   height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 @keyframes shimmer {

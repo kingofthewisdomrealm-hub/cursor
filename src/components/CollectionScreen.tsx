@@ -1,54 +1,70 @@
-import { getTile, COLLECTION_SECTIONS, ALL_TILE_IDS } from '../config/tiles'
-import { TraitTile } from './TraitTile'
-import type { TileId } from '../types/game'
+import { CARDS } from '../config/cards'
+import { SLOT_LABELS } from '../config/levels'
 
 interface CollectionScreenProps {
-  discoveredTiles: TileId[]
-  onSelectTile: (tileId: TileId) => void
+  unlockedCardIds: string[]
+  playerLevel: number
   onBack: () => void
 }
 
-export function CollectionScreen({ discoveredTiles, onSelectTile, onBack }: CollectionScreenProps) {
-  const discoveredCount = ALL_TILE_IDS.filter((id) => discoveredTiles.includes(id)).length
+export function CollectionScreen({
+  unlockedCardIds,
+  playerLevel,
+  onBack,
+}: CollectionScreenProps) {
+  const unlocked = new Set(unlockedCardIds)
+  const grouped = CARDS.reduce(
+    (acc, card) => {
+      if (!acc[card.slotType]) acc[card.slotType] = []
+      acc[card.slotType].push(card)
+      return acc
+    },
+    {} as Record<string, typeof CARDS>,
+  )
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 pb-24">
-      <div className="flex items-center justify-between py-3">
-        <button type="button" onClick={onBack} className="text-indigo-600 font-medium text-sm">
-          ← Back
-        </button>
-        <h2 className="text-lg font-bold text-slate-800">Collection</h2>
-        <div className="w-12" />
-      </div>
-      <p className="text-center text-sm text-slate-500 mb-4">
-        {discoveredCount} of {ALL_TILE_IDS.length} Archetypes Discovered
+    <div className="flex-1 overflow-y-auto px-4 pb-32 pt-4">
+      <button
+        type="button"
+        onClick={onBack}
+        className="text-sm text-emerald-600 font-medium mb-4"
+      >
+        ← Back to Build
+      </button>
+
+      <h2 className="text-xl font-bold text-slate-800 mb-1">Card Collection</h2>
+      <p className="text-sm text-slate-500 mb-6">
+        {unlockedCardIds.length}/{CARDS.length} cards discovered
       </p>
-      {COLLECTION_SECTIONS.map((section) => (
-        <div key={section.id} className="mb-6">
-          <h3 className="text-sm font-bold text-slate-600 mb-2">{section.title}</h3>
-          <div className="grid grid-cols-4 gap-2">
-            {section.tiles.map((tileId) => {
-              const discovered = discoveredTiles.includes(tileId)
-              const tile = getTile(tileId)
+
+      {Object.entries(grouped).map(([slotType, cards]) => (
+        <div key={slotType} className="mb-6">
+          <h3 className="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-2">
+            {SLOT_LABELS[slotType as keyof typeof SLOT_LABELS] ?? slotType}
+          </h3>
+          <div className="grid grid-cols-2 gap-2">
+            {cards.map((card) => {
+              const isUnlocked = unlocked.has(card.id)
+              const isLocked = card.unlockLevel > playerLevel
               return (
-                <button
-                  key={tileId}
-                  type="button"
-                  disabled={!discovered}
-                  onClick={() => discovered && onSelectTile(tileId)}
-                  className="aspect-square"
+                <div
+                  key={card.id}
+                  className={`
+                    p-3 rounded-xl border text-left
+                    ${isUnlocked ? 'bg-white border-slate-200' : 'bg-slate-50 border-slate-100 opacity-50'}
+                  `}
                 >
-                  {discovered ? (
-                    <TraitTile tileId={tileId} compact />
-                  ) : (
-                    <div className="w-full h-full rounded-xl bg-slate-800 flex items-center justify-center text-slate-500 text-xl font-bold border-2 border-slate-700">
-                      ?
-                    </div>
-                  )}
-                  <p className="text-[8px] text-center mt-0.5 text-slate-500 truncate">
-                    {discovered ? tile.name : '???'}
+                  <div className="text-2xl mb-1">{isUnlocked ? card.emoji : '❓'}</div>
+                  <p className="text-xs font-bold text-slate-800">
+                    {isUnlocked ? card.name : '???'}
                   </p>
-                </button>
+                  {isUnlocked && (
+                    <p className="text-[10px] text-slate-400 mt-1 line-clamp-2">{card.description}</p>
+                  )}
+                  {isLocked && !isUnlocked && (
+                    <p className="text-[10px] text-slate-400 mt-1">Level {card.unlockLevel}</p>
+                  )}
+                </div>
               )
             })}
           </div>

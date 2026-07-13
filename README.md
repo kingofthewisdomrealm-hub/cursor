@@ -1,6 +1,6 @@
-# Communicator Merge
+# Commerce Architect
 
-A mobile-first merge puzzle game where you evolve communication traits — Sharpness, Enthusiasm, and Authority — into legendary archetypes.
+A mobile-first business-building game where players learn e-commerce by assembling profitable businesses from interchangeable components.
 
 ## Run locally
 
@@ -28,16 +28,35 @@ npm run preview
 
 ## How to Play
 
-1. Tap **Generate Trait** to add basic tiles to the board.
-2. Tap a tile to select it, then tap another tile to merge (if compatible), an empty cell to move, or a different tile to swap.
-3. Merge identical tiles to evolve along three paths.
-4. Cross-merge Visionary, Catalyst, and Master into archetypes.
-5. Collect all three archetypes and press **ASCEND** to become a Legendary Communicator.
+1. Fill the **Business Blueprint** slots by tapping cards from the deck, then tapping a matching slot.
+2. Start with **Product** and **Market** (Level 1), then unlock more slots as you gain XP.
+3. When all active slots are filled, tap **Launch Business** to run the simulation.
+4. Review **Revenue**, **Profit**, **Conversion Rate**, and **Customer Satisfaction**.
+5. Read the feedback to learn why combinations succeed or fail.
+6. Face **Boss Battles** like Black Friday, Competitor Attack, and Ad Ban.
+7. Unlock cards, earn achievements, and build winning streaks.
 
 Progress saves automatically in your browser.
 
-## Play online
+## Game Levels
 
-**Live preview (temporary):** https://corresponding-sharing-preference-translations.trycloudflare.com/
+| Level | Name | Slots Unlocked |
+|-------|------|----------------|
+| 1 | Product-Market Fit | Product, Market |
+| 2 | Problem Match | + Problem |
+| 3 | Messaging | + Hook |
+| 4 | Offer Design | + Offer |
+| 5 | Traffic Sources | + Ad |
+| 6 | Funnel Architecture | + Landing Page |
 
-**GitHub Pages** (after enabling Pages in repo settings): https://kingofthewisdomrealm-hub.github.io/cursor/
+## Example Winning Combo
+
+- **Product:** Protein Powder
+- **Market:** Busy Professionals
+- **Problem:** No Time To Cook
+- **Hook:** "Healthy Meals In 60 Seconds"
+- **Offer:** Buy 2 Get 1 Free
+- **Ad:** TikTok UGC Video
+- **Landing Page:** Simple One-Product Store
+
+Progress saves automatically in your browser.
