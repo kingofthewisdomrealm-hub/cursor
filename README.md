@@ -1,22 +1,13 @@
-# Florida Storm Map
+# QuestionPilot AI — Conversation MRI
 
-A mobile-first storm intelligence dashboard for roofing, restoration, solar, and storm-recovery teams operating in Florida.
+An intelligent conversation copilot MVP that maps a person's internal world from transcript analysis and generates a navigation guide for breakthrough results.
 
-**Where did severe weather happen recently in Florida?**
+## What it does
 
-## Features
-
-- Full-screen interactive Florida map (Leaflet)
-- Color-coded storm markers by severity (Minor → Major)
-- 12 major Florida airport weather stations
-- Storm detail panel with impact radius visualization (1, 3, 5, 10 miles)
-- Filters: date range, storm type, hail size, wind speed, severity, airport
-- Dashboard summary: monthly storm counts and most active region
-- Saved storms (browser local storage, no login required)
-
-## Supported Event Types
-
-Hail, Severe Wind, Tornado, Hurricane, Flooding, Thunderstorm
+1. **Upload or paste** a coaching, therapy, sales, or facilitation transcript
+2. **Conversation MRI** scans six dimensions: goal clarity, emotional openness, motivation, self-awareness, resistance, and trust
+3. **Internal World Map** surfaces goals, fears, values, emotions, limiting beliefs, patterns, contradictions, and opportunities
+4. **Navigation Guide** recommends strategy, priority areas, cautions, and powerful follow-up questions
 
 ## Run locally
 
@@ -38,19 +29,12 @@ npm run preview
 
 - React + TypeScript + Vite
 - Tailwind CSS
-- Leaflet / react-leaflet
-- React Router
-- Local Storage
+- Lucide React
+- Client-side heuristic analysis engine (LLM-ready architecture)
 
-## Data Architecture
+## Try it
 
-Storm events are structured for future integration with:
-
-- Airport weather observations (METAR)
-- NOAA Storm Events
-- News-reported severe weather
-
-Version 1 ships with representative sample data across Florida.
+Click **Load sample** on the input screen to analyze a demo coaching conversation instantly.
 
 ## Play online
 
@@ -60,3 +44,10 @@ Version 1 ships with representative sample data across Florida.
 
 > To enable GitHub Pages: [Settings → Pages](https://github.com/kingofthewisdomrealm-hub/cursor/settings/pages)
 > → Source: **Deploy from a branch** → Branch: **gh-pages** → **/ (root)** → Save.
+
+## Roadmap
+
+- Live Session Copilot during Zoom calls
+- LLM-powered deep analysis
+- Custom questioning frameworks (Robbins, Ikigai, KWML, etc.)
+- Question Library with rationale explanations
