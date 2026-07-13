@@ -38,6 +38,8 @@ Progress saves automatically in your browser.
 
 ## Play online
 
-**Live preview (temporary):** https://corresponding-sharing-preference-translations.trycloudflare.com/
+**Live preview:** run `npm run build && npm run preview`, then share via tunnel.
 
-**GitHub Pages** (after enabling Pages in repo settings): https://kingofthewisdomrealm-hub.github.io/cursor/
+**GitHub Pages** (permanent): enable in repo **Settings → Pages → Deploy from branch → `gh-pages` / `root`**, then visit:
+
+**https://kingofthewisdomrealm-hub.github.io/cursor/**

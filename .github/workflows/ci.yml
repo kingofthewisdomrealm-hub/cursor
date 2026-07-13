@@ -35,4 +35,4 @@ jobs:
         run: npm run build
 
       - name: Build for GitHub Pages
-        run: VITE_BASE=/cursor/ npm run build
+        run: npm run build:pages
