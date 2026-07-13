@@ -117,7 +117,7 @@ export function getDocStatus(expense) {
     return { key: 'needs-clarification', label: 'Necesita aclaración' };
   }
   if ((expense.classification === 'business' || expense.classification === 'mixed')) {
-    if (!isValidCfdiUuid(expense.cfdiUuid) && !expense.receiptData) {
+    if (!isValidCfdiUuid(expense.cfdiUuid) && !expense.cfdiXml && !expense.receiptData) {
       return { key: 'missing-cfdi', label: 'Falta CFDI' };
     }
     if (!expense.commercialPurpose?.trim()) {

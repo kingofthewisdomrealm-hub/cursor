@@ -118,7 +118,7 @@ export function getEstimatedIvaPayable(incomes, expenses) {
 }
 
 export function hasCfdiSupport(expense) {
-  return isValidCfdiUuid(expense.cfdiUuid) || Boolean(expense.receiptData);
+  return isValidCfdiUuid(expense.cfdiUuid) || Boolean(expense.cfdiXml) || Boolean(expense.receiptData);
 }
 
 export function getRegime(regimeId) {

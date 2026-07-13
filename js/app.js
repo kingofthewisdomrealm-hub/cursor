@@ -5,6 +5,7 @@ import {
   updateExpense,
   updateIncome,
   updateSettings,
+  saveState,
   CATEGORIES,
   PAYMENT_METHODS,
   INCOME_SOURCES,
@@ -26,10 +27,12 @@ import {
   getPreparationScore,
   getMonthlyChartData,
   filterTransactions,
-  exportToCSV,
   getUniqueClients,
   getAvailableYears,
 } from './logic.js';
+
+import { parseCfdiXml, readFileAsText, isCfdiXml } from './cfdi-xml.js';
+import { exportToXml, exportFullBackupXml, importFromXml, downloadXml } from './xml-export.js';
 
 import {
   TAX_REGIMES,
@@ -45,6 +48,7 @@ import {
 let state = loadState();
 let currentView = 'dashboard';
 let reportFilters = {};
+let pendingCfdiUpload = { income: null, expense: null };
 
 const VIEW_META = {
   dashboard: { title: 'Panel Principal', subtitle: 'Control fiscal México — SAT' },
@@ -53,7 +57,7 @@ const VIEW_META = {
   sifting: { title: 'Motor SIFTING Fiscal', subtitle: 'Clasifique gastos deducibles (Art. 27 LISR)' },
   documentation: { title: 'Estado de Documentación', subtitle: 'CFDI y requisitos SAT' },
   calculator: { title: 'Reserva ISR + IVA', subtitle: 'Pagos provisionales estimados' },
-  reports: { title: 'Reportes', subtitle: 'Filtre y exporte para su contador' },
+  reports: { title: 'Reportes', subtitle: 'Exportar e importar en formato XML' },
   score: { title: 'Puntuación de Preparación Fiscal', subtitle: 'Listo para declarar ante el SAT' },
 };
 
@@ -200,6 +204,73 @@ function renderIvaFields(prefix, defaults = {}) {
   `;
 }
 
+function applyCfdiToForm(cfdi, type = 'expense') {
+  const setVal = (id, val) => {
+    const el = $(id);
+    if (el && val != null && val !== '') el.value = val;
+  };
+  const setCheck = (id, checked) => {
+    const el = $(id);
+    if (el) el.checked = checked;
+  };
+
+  setVal(type === 'income' ? '#income-amount' : '#expense-amount', String(cfdi.total));
+  setVal(type === 'income' ? '#income-date' : '#expense-date', cfdi.fecha);
+  setVal(type === 'income' ? '#income-cfdi' : '#expense-cfdi', cfdi.uuid || '');
+  setVal(type === 'income' ? '#income-iva-rate' : '#expense-iva-rate', cfdi.ivaRate);
+  setCheck(type === 'income' ? '#income-includes-iva' : '#expense-includes-iva', cfdi.includesIva);
+
+  if (type === 'expense') {
+    setVal('#expense-merchant', cfdi.emisorNombre || cfdi.emisorRfc);
+    setVal('#expense-purpose', cfdi.descripcion);
+    const preview = $('#receipt-preview');
+    if (preview) {
+      preview.innerHTML = `<div class="receipt-preview">🧾 CFDI XML · ${cfdi.emisorNombre || 'Comprobante'} · UUID ${cfdi.uuid ? '✓' : '—'}</div>`;
+    }
+  } else {
+    setVal('#income-client', cfdi.receptorNombre || cfdi.receptorRfc);
+    setVal('#income-notes', cfdi.descripcion);
+  }
+}
+
+async function processUploadedFile(file, type = 'expense') {
+  if (!file) return null;
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('El archivo excede 2 MB', 'error');
+    return null;
+  }
+
+  const text = await readFileAsText(file);
+  if (isCfdiXml(text)) {
+    const cfdi = parseCfdiXml(text);
+    applyCfdiToForm(cfdi, type);
+    showToast(`CFDI XML leído: ${cfdi.emisorNombre || cfdi.receptorNombre || 'comprobante'}`);
+    return {
+      cfdiUuid: cfdi.uuid,
+      cfdiXml: cfdi.rawXml,
+      cfdiType: cfdi.tipoLabel === 'Ingreso' ? 'Ingreso (factura emitida)' : 'Egreso (nota de crédito)',
+      amount: cfdi.total,
+      date: cfdi.fecha,
+      includesIva: cfdi.includesIva,
+      ivaRate: cfdi.ivaRate,
+      merchant: cfdi.emisorNombre,
+      commercialPurpose: cfdi.descripcion,
+      clientProject: type === 'income' ? cfdi.receptorNombre : undefined,
+      receiptName: file.name,
+      receiptData: null,
+    };
+  }
+
+  if (type === 'expense') {
+    const reader = await readFileAsBase64(file);
+    $('#receipt-preview').innerHTML = `<div class="receipt-preview">📎 ${file.name}</div>`;
+    return { receiptData: reader.data, receiptName: reader.name, cfdiXml: null };
+  }
+
+  showToast('Suba un archivo CFDI XML del SAT', 'error');
+  return null;
+}
+
 function readCfdiAndIvaFromForm(fd, prefix = '') {
   const cfdiUuid = String(fd.get('cfdiUuid') || '').trim();
   const includesIva = fd.get('includesIva') === 'on';
@@ -344,6 +415,12 @@ function renderIncomeForm() {
   return `
     <div class="card form-card">
       <form id="income-form" class="form-grid">
+        <div class="field">
+          <label for="income-xml">Importar CFDI XML (SAT)</label>
+          <input type="file" id="income-xml" accept=".xml,application/xml,text/xml">
+          <div class="field-hint">Suba el XML timbrado para llenar automáticamente los campos</div>
+          <div id="income-xml-preview"></div>
+        </div>
         <div class="form-row-2">
           <div class="field">
             <label for="income-amount">Monto *</label>
@@ -494,9 +571,14 @@ function renderExpenseForm() {
           <input type="text" id="expense-client" name="clientProject" placeholder="Ej. Proyecto Web ABC">
         </div>
         <div class="field">
-          <label for="expense-receipt">Adjuntar CFDI (PDF/XML) o comprobante</label>
-          <input type="file" id="expense-receipt" name="receipt" accept="image/*,.pdf,.xml">
-          <div class="field-hint">PDF, XML o imagen (máx. 2 MB)</div>
+          <label for="expense-xml">Importar CFDI XML (SAT) *recomendado*</label>
+          <input type="file" id="expense-xml" accept=".xml,application/xml,text/xml">
+          <div class="field-hint">El XML timbrado llena monto, fecha, UUID, emisor e IVA automáticamente</div>
+        </div>
+        <div class="field">
+          <label for="expense-receipt">Adjuntar comprobante adicional (PDF/imagen)</label>
+          <input type="file" id="expense-receipt" name="receipt" accept="image/*,.pdf">
+          <div class="field-hint">Opcional si ya subió el XML (máx. 2 MB)</div>
           <div id="receipt-preview"></div>
         </div>
         <div class="field">
@@ -568,7 +650,7 @@ function renderSifting() {
           <span>Categoría: <strong>${e.category}</strong></span>
           ${e.commercialPurpose ? `<span>Propósito: <strong>${e.commercialPurpose}</strong></span>` : ''}
           ${e.clientProject ? `<span>Proyecto: <strong>${e.clientProject}</strong></span>` : ''}
-          ${e.cfdiUuid ? '<span>✓ CFDI registrado</span>' : e.receiptData ? '<span>📎 Comprobante adjunto</span>' : '<span style="color:var(--warning)">Sin CFDI</span>'}
+          ${e.cfdiUuid ? '<span>✓ CFDI XML</span>' : e.cfdiXml ? '<span>🧾 XML adjunto</span>' : e.receiptData ? '<span>📎 Comprobante</span>' : '<span style="color:var(--warning)">Sin CFDI</span>'}
         </div>
         <div class="btn-group">
           <button class="btn btn-business" data-classify="business" data-id="${e.id}">Deducible</button>
@@ -770,8 +852,13 @@ function renderReports() {
           ${DOC_STATUSES.map((s) => `<option value="${s.value}" ${reportFilters.docStatus === s.value ? 'selected' : ''}>${s.label}</option>`).join('')}
         </select>
       </div>
-      <div class="field" style="align-self:flex-end">
-        <button class="btn btn-primary btn-sm" id="export-csv" ${totalRows === 0 ? 'disabled' : ''}>Exportar CSV</button>
+      <div class="field" style="align-self:flex-end;display:flex;gap:0.5rem;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" id="export-xml" ${totalRows === 0 ? 'disabled' : ''}>Exportar XML</button>
+        <button class="btn btn-secondary btn-sm" id="export-backup-xml">Respaldo XML completo</button>
+        <label class="btn btn-secondary btn-sm" style="cursor:pointer;margin:0">
+          Importar XML
+          <input type="file" id="import-xml" accept=".xml,application/xml" hidden>
+        </label>
       </div>
     </div>
 
@@ -1023,12 +1110,33 @@ function bindViewEvents() {
 
   const incomeForm = $('#income-form');
   if (incomeForm) {
+    const incomeXmlInput = $('#income-xml');
+    if (incomeXmlInput) {
+      incomeXmlInput.addEventListener('change', async () => {
+        const file = incomeXmlInput.files[0];
+        if (!file) return;
+        const result = await processUploadedFile(file, 'income');
+        if (result) {
+          pendingCfdiUpload.income = result;
+          const preview = $('#income-xml-preview');
+          if (preview) {
+            preview.innerHTML = `<div class="receipt-preview">🧾 ${file.name} · UUID ${result.cfdiUuid ? '✓' : '—'}</div>`;
+          }
+        }
+      });
+    }
+
     incomeForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const fd = new FormData(incomeForm);
       const amount = getFormAmount(fd);
       if (amount == null || amount <= 0) {
         showToast('Escriba un monto válido mayor a 0', 'error');
+        return;
+      }
+      const cfdiFields = readCfdiAndIvaFromForm(fd, 'income');
+      if (cfdiFields.cfdiUuid && !isValidCfdiUuid(cfdiFields.cfdiUuid)) {
+        showToast('UUID de CFDI inválido', 'error');
         return;
       }
       addIncome(state, {
@@ -1038,8 +1146,10 @@ function bindViewEvents() {
         clientProject: fd.get('clientProject') || '',
         paymentMethod: fd.get('paymentMethod') || '',
         notes: fd.get('notes') || '',
-        ...readCfdiAndIvaFromForm(fd, 'income'),
+        ...cfdiFields,
+        cfdiXml: pendingCfdiUpload.income?.cfdiXml || null,
       });
+      pendingCfdiUpload.income = null;
       showToast('Ingreso registrado correctamente');
       incomeForm.reset();
       $('#income-date').value = new Date().toISOString().slice(0, 10);
@@ -1049,18 +1159,26 @@ function bindViewEvents() {
 
   const expenseForm = $('#expense-form');
   if (expenseForm) {
+    const expenseXmlInput = $('#expense-xml');
     const receiptInput = $('#expense-receipt');
+
+    if (expenseXmlInput) {
+      expenseXmlInput.addEventListener('change', async () => {
+        const file = expenseXmlInput.files[0];
+        if (!file) return;
+        const result = await processUploadedFile(file, 'expense');
+        if (result) pendingCfdiUpload.expense = result;
+      });
+    }
+
     if (receiptInput) {
       receiptInput.addEventListener('change', async () => {
         const file = receiptInput.files[0];
-        const preview = $('#receipt-preview');
-        if (!file) { preview.innerHTML = ''; return; }
-        if (file.size > 2 * 1024 * 1024) {
-          showToast('El archivo excede 2 MB', 'error');
-          receiptInput.value = '';
-          return;
+        if (!file) return;
+        const result = await processUploadedFile(file, 'expense');
+        if (result?.receiptData) {
+          pendingCfdiUpload.expense = { ...(pendingCfdiUpload.expense || {}), ...result };
         }
-        preview.innerHTML = `<div class="receipt-preview">📎 ${file.name}</div>`;
       });
     }
 
@@ -1072,20 +1190,13 @@ function bindViewEvents() {
         showToast('Escriba un monto válido mayor a 0', 'error');
         return;
       }
-      let receiptData = null;
-      let receiptName = null;
-      const file = receiptInput?.files[0];
-      if (file) {
-        const result = await readFileAsBase64(file);
-        receiptData = result.data;
-        receiptName = result.name;
-      }
       const commercialPct = parseAmount(fd.get('commercialUsePercent'));
       const cfdiFields = readCfdiAndIvaFromForm(fd, 'expense');
       if (cfdiFields.cfdiUuid && !isValidCfdiUuid(cfdiFields.cfdiUuid)) {
         showToast('UUID de CFDI inválido. Verifique el folio fiscal.', 'error');
         return;
       }
+      const pending = pendingCfdiUpload.expense || {};
       addExpense(state, {
         amount,
         date: fd.get('date'),
@@ -1095,10 +1206,12 @@ function bindViewEvents() {
         clientProject: fd.get('clientProject') || '',
         commercialUsePercent: commercialPct ?? 100,
         notes: fd.get('notes') || '',
-        receiptData,
-        receiptName,
+        receiptData: pending.receiptData || null,
+        receiptName: pending.receiptName || null,
+        cfdiXml: pending.cfdiXml || null,
         ...cfdiFields,
       });
+      pendingCfdiUpload.expense = null;
       showToast('Gasto registrado — clasifíquelo en SIFTING');
       expenseForm.reset();
       $('#expense-date').value = new Date().toISOString().slice(0, 10);
@@ -1197,19 +1310,47 @@ function bindViewEvents() {
     });
   }
 
-  const exportBtn = $('#export-csv');
-  if (exportBtn) {
-    exportBtn.addEventListener('click', () => {
+  const exportXmlBtn = $('#export-xml');
+  if (exportXmlBtn) {
+    exportXmlBtn.addEventListener('click', () => {
       const filtered = filterTransactions(state.incomes, state.expenses, reportFilters);
-      const csv = exportToCSV(filtered.incomes, filtered.expenses);
-      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `tax-power-mapper-${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('CSV exportado correctamente');
+      const xml = exportToXml(filtered.incomes, filtered.expenses, state.settings);
+      downloadXml(xml, `tax-power-mapper-${new Date().toISOString().slice(0, 10)}.xml`);
+      showToast('Reporte XML exportado');
+    });
+  }
+
+  const exportBackupBtn = $('#export-backup-xml');
+  if (exportBackupBtn) {
+    exportBackupBtn.addEventListener('click', () => {
+      const xml = exportFullBackupXml(state);
+      downloadXml(xml, `tax-power-mapper-respaldo-${new Date().toISOString().slice(0, 10)}.xml`);
+      showToast('Respaldo XML completo exportado');
+    });
+  }
+
+  const importXmlInput = $('#import-xml');
+  if (importXmlInput) {
+    importXmlInput.addEventListener('change', async () => {
+      const file = importXmlInput.files[0];
+      if (!file) return;
+      try {
+        const text = await readFileAsText(file);
+        const imported = importFromXml(text);
+        if (!confirm(`¿Importar ${imported.incomes.length} ingresos y ${imported.expenses.length} gastos? Esto reemplazará sus datos actuales.`)) {
+          importXmlInput.value = '';
+          return;
+        }
+        state.incomes = imported.incomes;
+        state.expenses = imported.expenses;
+        state.settings = { ...state.settings, ...imported.settings };
+        saveState(state);
+        showToast('Datos importados desde XML');
+        render();
+      } catch (err) {
+        showToast(err.message || 'Error al importar XML', 'error');
+      }
+      importXmlInput.value = '';
     });
   }
 
@@ -1223,16 +1364,21 @@ function bindViewEvents() {
       openModal('Subir recibo', `
         <div class="field">
           <label>Seleccionar archivo</label>
-          <input type="file" id="modal-receipt" accept="image/*,.pdf">
+          <input type="file" id="modal-receipt" accept="image/*,.pdf,.xml,application/xml">
         </div>
         <button class="btn btn-primary btn-block mt-1" id="modal-receipt-save">Guardar recibo</button>
       `);
       $('#modal-receipt-save').addEventListener('click', async () => {
         const file = $('#modal-receipt').files[0];
         if (!file) { showToast('Seleccione un archivo', 'error'); return; }
-        if (file.size > 2 * 1024 * 1024) { showToast('Máximo 2 MB', 'error'); return; }
-        const result = await readFileAsBase64(file);
-        updateExpense(state, id, { receiptData: result.data, receiptName: result.name });
+        const result = await processUploadedFile(file, 'expense');
+        if (!result) return;
+        updateExpense(state, id, {
+          receiptData: result.receiptData || undefined,
+          receiptName: result.receiptName || file.name,
+          cfdiXml: result.cfdiXml || undefined,
+          cfdiUuid: result.cfdiUuid || undefined,
+        });
         closeModal();
         showToast('Recibo adjuntado');
         render();

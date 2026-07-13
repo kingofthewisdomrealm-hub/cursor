@@ -21,7 +21,8 @@ Aplicación web responsive para trabajadores independientes, emprendedores y peq
 - Motor SIFTING para clasificar gastos deducibles
 - Estado de documentación SAT (CFDI, comprobante, relación con actividad)
 - Calculadora de reserva ISR + IVA con fórmulas LISR/LIVA
-- Reportes filtrables y exportación CSV
+- Reportes filtrables y **exportación/importación XML**
+- **Importación CFDI XML** del SAT (auto-llena monto, UUID, IVA, emisor)
 
 ## Ejecutar localmente
 
