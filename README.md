@@ -52,6 +52,11 @@ Storm events are structured for future integration with:
 
 Version 1 ships with representative sample data across Florida.
 
-## Out of Scope (V1)
+## Play online
 
-Property records, lead generation, CRM, canvassing, user accounts, and payments are intentionally excluded.
+**Permanent URL (recommended for sharing):** https://kingofthewisdomrealm-hub.github.io/cursor/
+
+> One-time setup required: enable GitHub Pages at
+> [repo Settings → Pages](https://github.com/kingofthewisdomrealm-hub/cursor/settings/pages)
+> → Source: **Deploy from a branch** → Branch: **gh-pages** → **/ (root)** → Save.
+> The app is already deployed to the `gh-pages` branch; it goes live within ~1 minute after enabling.
