@@ -30,7 +30,7 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: VITE_BASE=/cursor/ npm run build
+        run: VITE_BASE=./ npm run build
 
       - name: Deploy to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4

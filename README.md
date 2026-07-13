@@ -54,9 +54,9 @@ Version 1 ships with representative sample data across Florida.
 
 ## Play online
 
-**Permanent URL (recommended for sharing):** https://kingofthewisdomrealm-hub.github.io/cursor/
+**Live demo (share with friends):** https://cdn.jsdelivr.net/gh/kingofthewisdomrealm-hub/cursor@gh-pages/index.html
 
-> One-time setup required: enable GitHub Pages at
-> [repo Settings → Pages](https://github.com/kingofthewisdomrealm-hub/cursor/settings/pages)
+**GitHub Pages (optional):** https://kingofthewisdomrealm-hub.github.io/cursor/
+
+> To enable GitHub Pages: [Settings → Pages](https://github.com/kingofthewisdomrealm-hub/cursor/settings/pages)
 > → Source: **Deploy from a branch** → Branch: **gh-pages** → **/ (root)** → Save.
-> The app is already deployed to the `gh-pages` branch; it goes live within ~1 minute after enabling.

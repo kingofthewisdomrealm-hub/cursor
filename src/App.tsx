@@ -1,14 +1,14 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { HashRouter, Route, Routes } from 'react-router-dom'
 import { MapPage } from './pages/MapPage'
 import { SavedStormsPage } from './pages/SavedStormsPage'
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<MapPage />} />
         <Route path="/saved" element={<SavedStormsPage />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
