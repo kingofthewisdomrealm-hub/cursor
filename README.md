@@ -35,3 +35,9 @@ npm run preview
 5. Collect all three archetypes and press **ASCEND** to become a Legendary Communicator.
 
 Progress saves automatically in your browser.
+
+## Play online
+
+After deployment, the game is available at:
+
+**https://kingofthewisdomrealm-hub.github.io/cursor/**
