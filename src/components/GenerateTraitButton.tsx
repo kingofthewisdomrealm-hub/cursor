@@ -20,11 +20,11 @@ export function GenerateTraitButton({ onGenerate, disabled, boardFull, compact }
           w-full rounded-lg font-semibold text-white flex items-center justify-center gap-1.5
           shadow-sm transition-opacity text-sm
           ${compact ? 'py-2' : 'py-3 rounded-xl'}
-          ${disabled ? 'bg-slate-300 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-500 to-purple-500'}
+          ${disabled ? 'bg-slate-600 cursor-not-allowed' : 'bg-gradient-to-r from-amber-600 to-orange-500 border border-amber-400/40'}
         `}
       >
         <Plus className="w-4 h-4" />
-        Generate Trait
+        Deploy Speaker
       </motion.button>
       {boardFull && !compact && (
         <p className="text-xs text-center text-slate-500 mt-1">

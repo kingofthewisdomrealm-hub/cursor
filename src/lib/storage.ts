@@ -11,6 +11,7 @@ export function loadGameState(): GameState {
     return {
       ...createInitialState(),
       ...parsed,
+      clearedStages: parsed.clearedStages ?? [],
       settings: { ...createInitialState().settings, ...parsed.settings },
       stats: { ...createInitialState().stats, ...parsed.stats },
     }

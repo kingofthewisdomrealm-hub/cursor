@@ -3,16 +3,17 @@ export interface Rank {
   name: string
   minPoints: number
   unlock: string
+  zone: string
 }
 
 export const RANKS: Rank[] = [
-  { id: 1, name: 'Beginner', minPoints: 0, unlock: 'Starting board theme' },
-  { id: 2, name: 'Clear Speaker', minPoints: 100, unlock: 'Soft blue board background' },
-  { id: 3, name: 'Persuasive Communicator', minPoints: 500, unlock: 'Tile glow effects' },
-  { id: 4, name: 'Influential Leader', minPoints: 1500, unlock: 'Warm gradient board theme' },
-  { id: 5, name: 'Communication Architect', minPoints: 3500, unlock: 'Premium tile borders' },
-  { id: 6, name: 'Master Communicator', minPoints: 7000, unlock: 'Faster trait generation' },
-  { id: 7, name: 'Legendary Communicator', minPoints: 15000, unlock: 'Golden board aura' },
+  { id: 1, name: 'Recruit Speaker', minPoints: 0, unlock: 'Deploy basic speakers', zone: 'Training Camp' },
+  { id: 2, name: 'Clear Voice', minPoints: 100, unlock: 'Stage 1 unlocked', zone: 'Open Mic Alley' },
+  { id: 3, name: 'Crowd Charmer', minPoints: 500, unlock: 'Speaker glow effects', zone: 'Town Hall' },
+  { id: 4, name: 'Stage Captain', minPoints: 1500, unlock: 'Elite speaker borders', zone: 'Conference Hall' },
+  { id: 5, name: 'Summit Commander', minPoints: 3500, unlock: 'Premium stage theme', zone: 'Summit Stage' },
+  { id: 6, name: 'Arena Master', minPoints: 7000, unlock: 'Faster deployments', zone: 'Global Arena' },
+  { id: 7, name: 'Legendary Orator', minPoints: 15000, unlock: 'Golden stage aura', zone: 'Legendary Podium' },
 ]
 
 export function getRankForPoints(points: number): Rank {

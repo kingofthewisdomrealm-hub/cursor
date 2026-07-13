@@ -33,6 +33,7 @@ export type TileId =
 export interface TileConfig {
   id: TileId
   name: string
+  logo: string
   icon: string
   category: TileCategory
   tier: number
@@ -79,6 +80,7 @@ export interface GameState {
   completedChallenges: string[]
   completedLearningChallenges: TileId[]
   hasLegendary: boolean
+  clearedStages: number[]
   settings: GameSettings
   stats: {
     totalMerges: number

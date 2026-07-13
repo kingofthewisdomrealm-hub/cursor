@@ -23,7 +23,7 @@ export function CommunicationBoard({
 }: CommunicationBoardProps) {
   return (
     <div
-      className="h-full min-h-0 grid gap-0.5 p-1 bg-white/50 backdrop-blur rounded-xl shadow-md border border-white/80"
+      className="h-full min-h-0 grid gap-0.5 p-1 bg-slate-800/80 backdrop-blur rounded-xl shadow-lg border border-amber-500/20"
       style={{
         gridTemplateColumns: `repeat(${BOARD_COLS}, minmax(0, 1fr))`,
         gridTemplateRows: `repeat(${BOARD_ROWS}, minmax(0, 1fr))`,

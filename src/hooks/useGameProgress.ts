@@ -104,6 +104,21 @@ export function useGameProgress() {
     setLastRankId(1)
   }, [setState])
 
+  const completeStage = useCallback(
+    (stageId: number, reward: number) => {
+      setState((prev) => {
+        if (prev.clearedStages.includes(stageId)) return prev
+        return {
+          ...prev,
+          clearedStages: [...prev.clearedStages, stageId],
+          points: prev.points + reward,
+        }
+      })
+      addPopup(reward, 'Stage Cleared')
+    },
+    [addPopup, setState],
+  )
+
   return {
     state,
     setState,
@@ -117,6 +132,7 @@ export function useGameProgress() {
     completeLearningChallenge,
     updateSettings,
     resetProgress,
+    completeStage,
     lastRankId,
     setLastRankId,
   }

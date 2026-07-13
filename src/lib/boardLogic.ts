@@ -180,6 +180,7 @@ export function createInitialState(): GameState {
     completedChallenges: [],
     completedLearningChallenges: [],
     hasLegendary: false,
+    clearedStages: [],
     settings: { soundEnabled: true, animationsEnabled: true },
     stats: {
       totalMerges: 0,

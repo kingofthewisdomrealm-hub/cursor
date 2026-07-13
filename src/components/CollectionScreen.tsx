@@ -14,10 +14,10 @@ export function CollectionScreen({ discoveredTiles, onSelectTile, onBack }: Coll
   return (
     <div className="flex-1 overflow-y-auto px-4 pb-24">
       <div className="flex items-center justify-between py-3">
-        <button type="button" onClick={onBack} className="text-indigo-600 font-medium text-sm">
+        <button type="button" onClick={onBack} className="text-amber-400 font-medium text-sm">
           ← Back
         </button>
-        <h2 className="text-lg font-bold text-slate-800">Collection</h2>
+        <h2 className="text-lg font-bold text-white">Speaker Roster</h2>
         <div className="w-12" />
       </div>
       <p className="text-center text-sm text-slate-500 mb-4">

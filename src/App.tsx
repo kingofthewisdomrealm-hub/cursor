@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { GameHeader } from './components/GameHeader'
 import { CommunicationBoard } from './components/CommunicationBoard'
 import { GenerateTraitButton } from './components/GenerateTraitButton'
@@ -10,23 +10,34 @@ import { SettingsModal } from './components/SettingsModal'
 import { BottomNavigation } from './components/BottomNavigation'
 import { PointAnimation } from './components/PointAnimation'
 import { AscensionCelebration } from './components/AscensionCelebration'
+import { StageBattleModal } from './components/StageBattleModal'
 import { useGameProgress } from './hooks/useGameProgress'
 import { useGameBoard } from './hooks/useGameBoard'
 import { useSound } from './hooks/useSound'
 import { canAscend } from './lib/boardLogic'
 import { getRankProgress } from './config/ranks'
+import { getStage } from './config/stages'
 import type { TileId, ViewId } from './types/game'
 
 function App() {
   const progress = useGameProgress()
-  const { state, rank, nextRank, popups, completeLearningChallenge, updateSettings, resetProgress } =
-    progress
+  const {
+    state,
+    rank,
+    nextRank,
+    popups,
+    completeLearningChallenge,
+    updateSettings,
+    resetProgress,
+    completeStage,
+  } = progress
   const { play } = useSound(state.settings.soundEnabled)
   const board = useGameBoard(progress, play)
 
   const [view, setView] = useState<ViewId>('game')
   const [learningTile, setLearningTile] = useState<TileId | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [activeStage, setActiveStage] = useState<number | null>(null)
   const prevRankRef = useRef(rank.id)
 
   const showAscend = canAscend(state.board) && !state.hasLegendary
@@ -34,9 +45,14 @@ function App() {
   useEffect(() => {
     if (rank.id > prevRankRef.current) {
       play('rankUp')
+      const stageId = rank.id - 1
+      const stage = getStage(stageId)
+      if (stage && !state.clearedStages.includes(stageId)) {
+        setActiveStage(stageId)
+      }
       prevRankRef.current = rank.id
     }
-  }, [rank.id, play])
+  }, [rank.id, play, state.clearedStages])
 
   useEffect(() => {
     document.body.style.overflow = view === 'game' ? 'hidden' : 'auto'
@@ -46,6 +62,21 @@ function App() {
     setLearningTile(tileId)
   }
 
+  const handleStageComplete = useCallback(
+    (stageId: number, reward: number) => {
+      completeStage(stageId, reward)
+      play('challenge')
+      setActiveStage(null)
+    },
+    [completeStage, play],
+  )
+
+  const handleReset = useCallback(() => {
+    resetProgress()
+    prevRankRef.current = 1
+    setActiveStage(null)
+  }, [resetProgress])
+
   return (
     <div className="game-container relative">
       {view === 'game' && (
@@ -53,8 +84,10 @@ function App() {
           <GameHeader
             points={state.points}
             rankName={rank.name}
+            zoneName={rank.zone}
             nextRankName={nextRank?.name}
             progressPercent={getRankProgress(state.points)}
+            clearedStages={state.clearedStages}
           />
           <div className="game-board-area">
             <CommunicationBoard
@@ -78,7 +111,7 @@ function App() {
           </div>
           {board.boardFull && (
             <p className="text-[10px] text-center text-slate-500 px-3 pb-0.5 shrink-0">
-              Board full — merge or move tiles to continue
+              Board full — fuse or reposition speakers
             </p>
           )}
         </div>
@@ -104,6 +137,13 @@ function App() {
         }}
       />
 
+      <StageBattleModal
+        stageId={activeStage}
+        board={state.board}
+        points={state.points}
+        onComplete={handleStageComplete}
+      />
+
       <LearningCardModal
         tileId={learningTile}
         completed={learningTile ? state.completedLearningChallenges.includes(learningTile) : false}
@@ -126,7 +166,7 @@ function App() {
         onToggleAnimations={() =>
           updateSettings({ animationsEnabled: !state.settings.animationsEnabled })
         }
-        onReset={resetProgress}
+        onReset={handleReset}
       />
 
       <PointAnimation popups={popups} />
