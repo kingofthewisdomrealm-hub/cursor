@@ -3,9 +3,10 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 const isGhPages = process.env.GITHUB_ACTIONS === 'true' || process.env.DEPLOY_PAGES === 'true';
+const isStandalone = process.env.DEPLOY_STANDALONE === 'true';
 
 export default defineConfig({
-  base: isGhPages ? '/cursor/' : '/',
+  base: isStandalone ? './' : isGhPages ? '/cursor/' : '/',
   plugins: [react(), tailwindcss()],
   server: {
     host: true,
