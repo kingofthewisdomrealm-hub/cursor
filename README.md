@@ -1,32 +1,37 @@
-# Tax Power Mapper — Mapa de Poder Fiscal
+# Communicator Merge
 
-Aplicación web responsive para que trabajadores independientes, emprendedores y pequeños negocios organicen ingresos, gastos, recibos y reservas fiscales durante todo el año.
+A mobile-first merge puzzle game where you evolve communication traits — Sharpness, Enthusiasm, and Authority — into legendary archetypes.
 
-> **Aviso:** Esta herramienta no constituye asesoría legal ni fiscal. Utiliza estimaciones orientativas. Consulte con un profesional de impuestos.
-
-## Características
-
-- **Panel Principal** — Ingresos, gastos, posibles deducciones, ganancia imponible estimada, reserva fiscal y recibos faltantes
-- **Registrar Ingreso** — Monto, fecha, fuente, cliente/proyecto, método de pago y notas
-- **Registrar Gasto** — Monto, comercio, categoría, propósito comercial, recibo, % uso comercial y más
-- **Motor SIFTING Fiscal** — Clasifique gastos como Negocio, Personal, Mixto o No estoy seguro
-- **Estado de Documentación** — Listo para revisión, falta recibo, falta propósito, necesita aclaración, gasto personal
-- **Calculadora de Reserva Fiscal** — Porcentaje de impuestos ajustable con fórmulas en tiempo real
-- **Reportes** — Filtros por mes, año, categoría, cliente, proyecto y estado; exportación CSV
-- **Puntuación de Preparación Fiscal** — Indicador visual con recomendaciones de mejora
-
-## Ejecutar localmente
+## Run locally
 
 ```bash
-python3 -m http.server 8080
+npm install
+npm run dev
 ```
 
-Abra [http://localhost:8080](http://localhost:8080) en su navegador.
+Open the URL shown in the terminal (typically http://localhost:5173).
 
-Los datos se guardan automáticamente en el almacenamiento local del navegador (`localStorage`).
+## Build
 
-## Tecnologías
+```bash
+npm run build
+npm run preview
+```
 
-- HTML5, CSS3, JavaScript (ES modules)
-- Sin dependencias externas ni paso de compilación
-- Diseño responsive con barra lateral en escritorio y menú móvil
+## Tech Stack
+
+- React + TypeScript + Vite
+- Tailwind CSS
+- Framer Motion
+- Lucide React
+- LocalStorage for save data
+
+## How to Play
+
+1. Tap **Generate Trait** to add basic tiles to the board.
+2. Tap a tile to select it, then tap another tile to merge (if compatible), an empty cell to move, or a different tile to swap.
+3. Merge identical tiles to evolve along three paths.
+4. Cross-merge Visionary, Catalyst, and Master into archetypes.
+5. Collect all three archetypes and press **ASCEND** to become a Legendary Communicator.
+
+Progress saves automatically in your browser.
