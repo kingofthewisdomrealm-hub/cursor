@@ -8,6 +8,7 @@ html,
 body,
 #root {
   height: 100%;
+  height: 100dvh;
   overflow: hidden;
   touch-action: manipulation;
 }
@@ -22,8 +23,34 @@ body {
   max-width: 28rem;
   margin: 0 auto;
   height: 100%;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+.game-screen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: 3.25rem;
+}
+
+.game-board-area {
+  flex: 1;
+  min-height: 0;
+  padding: 0 0.5rem;
+  overflow: hidden;
+}
+
+.game-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem 0.25rem;
 }
 
 @keyframes shimmer {

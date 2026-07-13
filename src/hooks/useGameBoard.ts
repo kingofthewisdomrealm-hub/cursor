@@ -17,7 +17,7 @@ import type { useGameProgress } from './useGameProgress'
 
 import type { SoundType } from './useSound'
 
-const GENERATE_COOLDOWN_MS = 2000
+const GENERATE_ANIMATION_MS = 300
 
 type ProgressApi = ReturnType<typeof useGameProgress>
 
@@ -26,7 +26,6 @@ export function useGameBoard(progress: ProgressApi, playSound: (type: SoundType)
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [mergingIndices, setMergingIndices] = useState<number[]>([])
   const [generatingIndex, setGeneratingIndex] = useState<number | null>(null)
-  const [cooldown, setCooldown] = useState(false)
   const [showAscension, setShowAscension] = useState(false)
   const lastTapRef = useRef<{ index: number; time: number } | null>(null)
 
@@ -145,7 +144,7 @@ export function useGameBoard(progress: ProgressApi, playSound: (type: SoundType)
   )
 
   const generateTrait = useCallback(() => {
-    if (cooldown || isBoardFull(state.board)) return
+    if (isBoardFull(state.board)) return
     const empty = findEmptyCells(state.board)
     if (empty.length === 0) return
 
@@ -164,12 +163,8 @@ export function useGameBoard(progress: ProgressApi, playSound: (type: SoundType)
     })
 
     playSound('generate')
-    setCooldown(true)
-    setTimeout(() => {
-      setGeneratingIndex(null)
-      setCooldown(false)
-    }, GENERATE_COOLDOWN_MS)
-  }, [cooldown, state.board, setState, playSound])
+    setTimeout(() => setGeneratingIndex(null), GENERATE_ANIMATION_MS)
+  }, [state.board, setState, playSound])
 
   const handleDrop = useCallback(
     (fromIndex: number, toIndex: number) => {
@@ -237,7 +232,6 @@ export function useGameBoard(progress: ProgressApi, playSound: (type: SoundType)
     setSelectedIndex,
     mergingIndices,
     generatingIndex,
-    cooldown,
     boardFull,
     showAscension,
     handleCellTap,

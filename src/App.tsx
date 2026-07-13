@@ -49,14 +49,14 @@ function App() {
   return (
     <div className="game-container relative">
       {view === 'game' && (
-        <>
+        <div className="game-screen">
           <GameHeader
             points={state.points}
             rankName={rank.name}
             nextRankName={nextRank?.name}
             progressPercent={getRankProgress(state.points)}
           />
-          <div className="flex-1 overflow-y-auto px-3 pb-32">
+          <div className="game-board-area">
             <CommunicationBoard
               board={state.board}
               selectedIndex={board.selectedIndex}
@@ -66,19 +66,22 @@ function App() {
               onDrop={board.handleDrop}
               onDoubleTapTile={handleDoubleTap}
             />
+          </div>
+          <div className="game-actions">
             <GenerateTraitButton
               onGenerate={board.generateTrait}
-              disabled={board.boardFull || board.cooldown}
+              disabled={board.boardFull}
               boardFull={board.boardFull}
-              cooldown={board.cooldown}
+              compact
             />
-            {showAscend && (
-              <div className="px-4 mt-2">
-                <AscendButton onAscend={board.ascend} />
-              </div>
-            )}
+            {showAscend && <AscendButton onAscend={board.ascend} compact />}
           </div>
-        </>
+          {board.boardFull && (
+            <p className="text-[10px] text-center text-slate-500 px-3 pb-0.5 shrink-0">
+              Board full — merge or move tiles to continue
+            </p>
+          )}
+        </div>
       )}
 
       {view === 'collection' && (

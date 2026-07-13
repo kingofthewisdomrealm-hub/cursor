@@ -1,4 +1,4 @@
-import { BOARD_COLS } from '../lib/boardLogic'
+import { BOARD_COLS, BOARD_ROWS } from '../lib/boardLogic'
 import { BoardCell } from './BoardCell'
 import type { Board, TileId } from '../types/game'
 
@@ -23,8 +23,11 @@ export function CommunicationBoard({
 }: CommunicationBoardProps) {
   return (
     <div
-      className="grid gap-1.5 p-3 bg-white/50 backdrop-blur rounded-2xl shadow-lg border border-white/80"
-      style={{ gridTemplateColumns: `repeat(${BOARD_COLS}, 1fr)` }}
+      className="h-full min-h-0 grid gap-0.5 p-1 bg-white/50 backdrop-blur rounded-xl shadow-md border border-white/80"
+      style={{
+        gridTemplateColumns: `repeat(${BOARD_COLS}, minmax(0, 1fr))`,
+        gridTemplateRows: `repeat(${BOARD_ROWS}, minmax(0, 1fr))`,
+      }}
     >
       {board.map((cell, index) => (
         <BoardCell

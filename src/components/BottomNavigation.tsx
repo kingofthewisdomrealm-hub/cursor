@@ -15,20 +15,20 @@ const NAV_ITEMS: { id: ViewId; label: string; icon: typeof Gamepad2 }[] = [
 
 export function BottomNavigation({ currentView, onNavigate }: BottomNavigationProps) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur border-t border-slate-200 z-30">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur border-t border-slate-200 z-30 safe-bottom">
       <div className="game-container">
-        <div className="flex justify-around py-2">
+        <div className="flex justify-around py-1">
           {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               type="button"
               onClick={() => onNavigate(id)}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-colors ${
+              className={`flex flex-col items-center gap-0 px-2 py-0.5 rounded-lg transition-colors ${
                 currentView === id ? 'text-indigo-600' : 'text-slate-400'
               }`}
             >
-              <Icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium">{label}</span>
+              <Icon className="w-4 h-4" />
+              <span className="text-[9px] font-medium">{label}</span>
             </button>
           ))}
         </div>

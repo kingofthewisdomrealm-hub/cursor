@@ -12,22 +12,22 @@ export function GameHeader({ points, rankName, nextRankName, progressPercent }: 
   const pct = progressPercent ?? getRankProgress(points)
 
   return (
-    <header className="px-4 pt-4 pb-2 shrink-0">
-      <h1 className="text-xl font-bold text-slate-800 text-center tracking-tight">
+    <header className="px-3 pt-2 pb-1.5 shrink-0">
+      <h1 className="text-sm font-bold text-slate-800 text-center tracking-tight">
         Communicator Merge
       </h1>
-      <div className="mt-3 flex items-center justify-between gap-3">
-        <div className="flex-1">
-          <p className="text-xs text-slate-500 font-medium">Communication Points</p>
-          <p className="text-2xl font-bold text-indigo-600 tabular-nums">{points.toLocaleString()}</p>
+      <div className="mt-1 flex items-center justify-between gap-2 text-xs">
+        <div>
+          <span className="text-slate-500">Points </span>
+          <span className="font-bold text-indigo-600 tabular-nums">{points.toLocaleString()}</span>
         </div>
-        <div className="flex-1 text-right">
-          <p className="text-xs text-slate-500 font-medium">Rank</p>
-          <p className="text-sm font-bold text-slate-800">{rankName}</p>
+        <div className="text-right">
+          <span className="text-slate-500">Rank </span>
+          <span className="font-bold text-slate-800">{rankName}</span>
         </div>
       </div>
-      <div className="mt-2">
-        <div className="h-2 bg-white/60 rounded-full overflow-hidden shadow-inner">
+      <div className="mt-1 flex items-center gap-2">
+        <div className="flex-1 h-1.5 bg-white/60 rounded-full overflow-hidden shadow-inner">
           <motion.div
             className="h-full bg-gradient-to-r from-indigo-400 to-purple-500 rounded-full"
             initial={{ width: 0 }}
@@ -36,7 +36,7 @@ export function GameHeader({ points, rankName, nextRankName, progressPercent }: 
           />
         </div>
         {nextRankName && (
-          <p className="text-[10px] text-slate-400 mt-1 text-center">Next: {nextRankName}</p>
+          <span className="text-[9px] text-slate-400 shrink-0 max-w-[5rem] truncate">{nextRankName}</span>
         )}
       </div>
     </header>

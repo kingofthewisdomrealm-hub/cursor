@@ -18,8 +18,8 @@ export function BoardCell({ index, tile, selected, merging, entering, onTap, onD
   return (
     <div
       className={`
-        aspect-square rounded-xl border-2 border-dashed transition-colors
-        ${tile ? 'border-transparent bg-transparent' : 'border-slate-200/80 bg-white/40'}
+        h-full min-h-0 rounded-md border border-dashed transition-colors
+        ${tile ? 'border-transparent bg-transparent' : 'border-slate-200/70 bg-white/30'}
         ${dragOver && !tile ? 'border-indigo-400 bg-indigo-50/50' : ''}
       `}
       onClick={onTap}
