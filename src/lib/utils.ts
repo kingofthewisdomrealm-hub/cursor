@@ -1,38 +1,49 @@
-export function formatCurrency(amount: number): string {
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+export function formatCurrency(amount: number, currency = "USD"): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
+    currency,
     maximumFractionDigits: 0,
   }).format(amount);
 }
 
-export function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString("en-US", {
+export function formatDate(date: string | Date, opts?: Intl.DateTimeFormatOptions) {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return d.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
+    ...opts,
   });
 }
 
-export function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+export function nightsBetween(checkIn: string, checkOut: string): number {
+  const start = new Date(checkIn);
+  const end = new Date(checkOut);
+  const ms = end.getTime() - start.getTime();
+  return Math.max(1, Math.round(ms / (1000 * 60 * 60 * 24)));
 }
 
-export function cn(...classes: (string | false | undefined | null)[]): string {
-  return classes.filter(Boolean).join(" ");
+export function toISODate(date: Date): string {
+  return date.toISOString().slice(0, 10);
 }
 
-export function confidenceColor(score: number): string {
-  if (score >= 85) return "text-emerald-400";
-  if (score >= 70) return "text-amber-400";
-  return "text-orange-400";
+export function addDays(date: string | Date, days: number): string {
+  const d = typeof date === "string" ? new Date(date) : new Date(date);
+  d.setDate(d.getDate() + days);
+  return toISODate(d);
 }
 
-export function confidenceBg(score: number): string {
-  if (score >= 85) return "bg-emerald-500/20 border-emerald-500/30";
-  if (score >= 70) return "bg-amber-500/20 border-amber-500/30";
-  return "bg-orange-500/20 border-orange-500/30";
+export function uid(prefix = "id"): string {
+  return `${prefix}_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36).slice(-4)}`;
+}
+
+export function initials(first: string, last?: string): string {
+  return `${first.charAt(0)}${(last ?? "").charAt(0)}`.toUpperCase();
 }
