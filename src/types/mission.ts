@@ -77,6 +77,10 @@ export interface Task {
   status: TaskStatus;
   approval_required: boolean;
   sort_order: number;
+  suggested_capability?: string | null;
+  assigned_integration_id?: string | null;
+  work_output?: string | null;
+  delegation_status?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -115,6 +119,7 @@ export interface PlannedTask {
   status: TaskStatus;
   approval_required: boolean;
   stage_index?: number;
+  suggested_capability?: string;
 }
 
 export interface PlannedStage {

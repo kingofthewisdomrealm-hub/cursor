@@ -14,7 +14,8 @@ import { NextActionCard } from "@/components/NextActionCard";
 import { ProgressBar } from "@/components/ProgressBar";
 import { TaskCard } from "@/components/TaskCard";
 import { formatDate } from "@/lib/utils";
-import { Calendar, Layers } from "lucide-react";
+import { getAllIntegrations } from "@/lib/integration-store";
+import { Calendar, Layers, Plug } from "lucide-react";
 
 export default function DashboardPage({
   params,
@@ -51,6 +52,7 @@ export default function DashboardPage({
   const activeTasks = mission.tasks.filter(
     (t) => !["completed", "skipped"].includes(t.status)
   );
+  const connectedApps = getAllIntegrations().filter((i) => i.enabled);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
@@ -111,6 +113,28 @@ export default function DashboardPage({
           </div>
         </MissionCard>
       </div>
+
+      {connectedApps.length > 0 && (
+        <MissionCard title="Connected AI Apps" className="mb-6">
+          <div className="flex flex-wrap gap-2">
+            {connectedApps.map((app) => (
+              <span
+                key={app.id}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/30 bg-purple-950/20 px-3 py-1.5 text-xs font-medium text-purple-300"
+              >
+                <Plug className="h-3 w-3" />
+                {app.name}
+              </span>
+            ))}
+          </div>
+          <Link
+            href="/integrations"
+            className="mt-3 inline-block text-xs text-cyan-400 hover:text-cyan-300"
+          >
+            Manage AI apps →
+          </Link>
+        </MissionCard>
+      )}
 
       <section className="mb-6">
         <div className="flex items-center justify-between mb-4">

@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Crosshair } from "lucide-react";
+import { Crosshair, Plug } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function MissionNav() {
   const pathname = usePathname();
   const isHome = pathname === "/";
+  const isIntegrations = pathname === "/integrations";
 
   return (
     <header className="sticky top-0 z-50 border-b border-zinc-800/80 bg-[#0a0a0f]/90 backdrop-blur-md">
@@ -26,22 +27,29 @@ export function MissionNav() {
           </div>
         </Link>
 
-        {!isHome && (
-          <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-1">
+          <Link
+            href="/integrations"
+            className={cn(
+              "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+              isIntegrations
+                ? "bg-purple-500/15 text-purple-400 border border-purple-500/30"
+                : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+            )}
+          >
+            <Plug className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">AI Apps</span>
+          </Link>
+          {!isHome && (
             <Link
               href="/"
-              className={cn(
-                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
-                isHome
-                  ? "bg-cyan-500/10 text-cyan-400"
-                  : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
-              )}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors"
             >
               <Crosshair className="h-3.5 w-3.5" />
-              New Mission
+              <span className="hidden sm:inline">New Mission</span>
             </Link>
-          </nav>
-        )}
+          )}
+        </nav>
       </div>
     </header>
   );

@@ -76,6 +76,20 @@ OPENAI_API_KEY=sk-your-openai-key
 - Recommend next actions
 - Track progress
 - Adapt plans based on results
+- **Delegate tasks to connected AI apps** (OpenAI, Research Scout, Outreach Composer, webhooks)
+
+## AI App Integrations
+
+Connect specialized AI apps at `/integrations` to execute mission work:
+
+- **OpenAI Mission Worker** — general task execution
+- **Research Scout** — audience and community research
+- **Outreach Composer** — emails and DMs
+- **Prospect Mapper** — target lists
+- **Social Pulse** — social content
+- **Custom Webhook** — connect Zapier, Make, n8n, or your own AI API
+
+See [docs/integrations.md](docs/integrations.md) for webhook payload format.
 
 **Safety:** The agent never automatically spends money, sends messages, or accesses financial accounts. External actions require user approval.
 

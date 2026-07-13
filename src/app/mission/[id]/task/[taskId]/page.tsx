@@ -16,6 +16,7 @@ import {
 } from "@/lib/mission-store";
 import { MissionSubNav } from "@/components/MissionSubNav";
 import { StatusBadge } from "@/components/StatusBadge";
+import { DelegateToApp } from "@/components/DelegateToApp";
 import type { TaskStatus } from "@/types/mission";
 import {
   Check,
@@ -182,6 +183,8 @@ export default function TaskDetailPage({
 
       {!showResults ? (
         <>
+          <DelegateToApp mission={mission} task={task} onComplete={refresh} />
+
           <Section title="Why it matters">
             <p className="text-zinc-300 leading-relaxed">{task.reason}</p>
           </Section>

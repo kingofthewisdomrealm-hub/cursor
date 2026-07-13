@@ -109,6 +109,7 @@ export function generateDemoPlan(outcome: string, answers?: Record<string, strin
           status: "ready",
           approval_required: false,
           stage_index: 0,
+          suggested_capability: "research",
         },
         {
           title: "Contact five local Toastmasters clubs",
@@ -124,6 +125,7 @@ export function generateDemoPlan(outcome: string, answers?: Record<string, strin
           status: "not_started",
           approval_required: true,
           stage_index: 4,
+          suggested_capability: "outreach_writing",
         },
         {
           title: "Publish one invitation post on LinkedIn",
@@ -138,6 +140,7 @@ export function generateDemoPlan(outcome: string, answers?: Record<string, strin
           status: "not_started",
           approval_required: true,
           stage_index: 3,
+          suggested_capability: "social_content",
         },
         {
           title: "Follow up with eight warm contacts",
@@ -152,6 +155,7 @@ export function generateDemoPlan(outcome: string, answers?: Record<string, strin
           status: "not_started",
           approval_required: true,
           stage_index: 6,
+          suggested_capability: "outreach_writing",
         },
         {
           title: "Set up registration tracking spreadsheet",
@@ -164,6 +168,7 @@ export function generateDemoPlan(outcome: string, answers?: Record<string, strin
           status: "not_started",
           approval_required: false,
           stage_index: 5,
+          suggested_capability: "strategy_analysis",
         },
       ],
       approval_required: [
