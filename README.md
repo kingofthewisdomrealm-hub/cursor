@@ -1,6 +1,13 @@
-# Communicator Merge
+# QuestionPilot AI — Conversation MRI
 
-A mobile-first merge puzzle game where you evolve communication traits — Sharpness, Enthusiasm, and Authority — into legendary archetypes.
+An intelligent conversation copilot MVP that maps a person's internal world from transcript analysis and generates a navigation guide for breakthrough results.
+
+## What it does
+
+1. **Upload or paste** a coaching, therapy, sales, or facilitation transcript
+2. **Conversation MRI** scans six dimensions: goal clarity, emotional openness, motivation, self-awareness, resistance, and trust
+3. **Internal World Map** surfaces goals, fears, values, emotions, limiting beliefs, patterns, contradictions, and opportunities
+4. **Navigation Guide** recommends strategy, priority areas, cautions, and powerful follow-up questions
 
 ## Run locally
 
@@ -22,22 +29,16 @@ npm run preview
 
 - React + TypeScript + Vite
 - Tailwind CSS
-- Framer Motion
 - Lucide React
-- LocalStorage for save data
+- Client-side heuristic analysis engine (LLM-ready architecture)
 
-## How to Play
+## Try it
 
-1. Tap **Generate Trait** to add basic tiles to the board.
-2. Tap a tile to select it, then tap another tile to merge (if compatible), an empty cell to move, or a different tile to swap.
-3. Merge identical tiles to evolve along three paths.
-4. Cross-merge Visionary, Catalyst, and Master into archetypes.
-5. Collect all three archetypes and press **ASCEND** to become a Legendary Communicator.
+Click **Load sample** on the input screen to analyze a demo coaching conversation instantly.
 
-Progress saves automatically in your browser.
+## Roadmap
 
-## Play online
-
-**Live preview (temporary):** https://corresponding-sharing-preference-translations.trycloudflare.com/
-
-**GitHub Pages** (after enabling Pages in repo settings): https://kingofthewisdomrealm-hub.github.io/cursor/
+- Live Session Copilot during Zoom calls
+- LLM-powered deep analysis
+- Custom questioning frameworks (Robbins, Ikigai, KWML, etc.)
+- Question Library with rationale explanations
