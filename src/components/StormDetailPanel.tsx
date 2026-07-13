@@ -12,6 +12,7 @@ import {
   STORM_EVENT_LABELS,
 } from '../types/storm'
 import type { StormEvent } from '../types/storm'
+import { NeighborhoodList } from './NeighborhoodList'
 
 interface StormDetailPanelProps {
   storm: StormEvent
@@ -87,6 +88,8 @@ export function StormDetailPanel({
           <DetailItem label="Hail Size" value={formatHailSize(storm.hailSize)} />
           <DetailItem label="Source" value={DATA_SOURCE_LABELS[storm.source]} className="col-span-2" />
         </dl>
+
+        <NeighborhoodList neighborhoods={storm.neighborhoods} className="mt-4" />
 
         {storm.notes && (
           <div className="mt-4 rounded-lg border border-slate-700/50 bg-slate-800/50 p-3">

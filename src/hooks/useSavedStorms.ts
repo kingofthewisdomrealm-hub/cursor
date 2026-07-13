@@ -23,6 +23,7 @@ export function useSavedStorms() {
           date: storm.date,
           city: storm.city,
           severity: storm.severity,
+          neighborhoods: storm.neighborhoods,
           savedAt: new Date().toISOString(),
         }
         return [entry, ...prev]

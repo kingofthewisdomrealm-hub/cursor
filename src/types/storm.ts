@@ -25,6 +25,7 @@ export interface StormEvent {
   time: string
   city: string
   county: string
+  neighborhoods: string[]
   airportCode: string
   latitude: number
   longitude: number
@@ -42,6 +43,7 @@ export interface SavedStorm {
   date: string
   city: string
   severity: SeverityLevel
+  neighborhoods?: string[]
   savedAt: string
 }
 

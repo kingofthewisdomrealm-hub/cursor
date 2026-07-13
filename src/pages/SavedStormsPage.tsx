@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { useSavedStorms } from '../hooks/useSavedStorms'
 import { formatDate, formatSavedDate, getEventIcon } from '../lib/format'
 import { AppNavigation } from '../components/AppNavigation'
+import { NeighborhoodList } from '../components/NeighborhoodList'
 import { SEVERITY_COLORS, SEVERITY_LABELS, STORM_EVENT_LABELS } from '../types/storm'
 
 export function SavedStormsPage() {
-  const { savedStorms, removeStorm } = useSavedStorms()
+  const { savedStorms, removeStorm, getStormById } = useSavedStorms()
   const navigate = useNavigate()
 
   return (
@@ -42,7 +43,11 @@ export function SavedStormsPage() {
           </div>
         ) : (
           <ul className="space-y-3">
-            {savedStorms.map((storm) => (
+            {savedStorms.map((storm) => {
+              const neighborhoods =
+                storm.neighborhoods ?? getStormById(storm.id)?.neighborhoods ?? []
+
+              return (
               <li
                 key={storm.id}
                 className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-4"
@@ -66,6 +71,7 @@ export function SavedStormsPage() {
                         </span>
                       </div>
                       <p className="text-sm text-slate-300">{storm.city}</p>
+                      <NeighborhoodList neighborhoods={neighborhoods} className="mt-2 border-0 bg-transparent p-0" />
                       <p className="mt-1 text-xs text-slate-500">
                         Event: {formatDate(storm.date)} · Saved: {formatSavedDate(storm.savedAt)}
                       </p>
@@ -81,7 +87,7 @@ export function SavedStormsPage() {
                   </button>
                 </div>
               </li>
-            ))}
+            )})}
           </ul>
         )}
       </main>
