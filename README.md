@@ -4,18 +4,30 @@ Aplicación web responsive para trabajadores independientes, emprendedores y peq
 
 > **Aviso:** Herramienta orientativa basada en LISR y LIVA. No constituye asesoría del SAT. Consulte con un contador público certificado.
 
+## Regímenes por tipo de contribuyente
+
+### Persona Física (PF)
+- **RESICO (PF)** — ISR 1.0% a 2.5% sobre ingresos cobrados
+- **Actividad Empresarial y Profesional** — deducciones con CFDI
+- **Arrendamiento** — ingresos por renta de inmuebles
+- **Tasa manual**
+
+### Persona Moral (PM)
+- **RESICO (PM)** — ISR 2.0% a 3.5% sobre ingresos cobrados
+- **General de Ley** — ISR 30% sobre utilidad fiscal
+- **Coordinados** — actividades específicas
+- **Tasa manual**
+
 ## Marco fiscal mexicano
 
 - **ISR** — Impuesto Sobre la Renta (pagos provisionales mensuales)
 - **IVA** — Impuesto al Valor Agregado (16% tasa general, 8% frontera)
-- **RESICO** — Régimen Simplificado de Confianza (tarifas 1.0%–2.5% sobre ingresos cobrados)
-- **Actividad Empresarial** — Deducciones autorizadas (Art. 27 LISR) con CFDI
 - **CFDI** — Comprobante Fiscal Digital por Internet (UUID / folio fiscal)
 
 ## Características
 
+- Selector **Persona Física / Persona Moral** con regímenes específicos
 - Panel con ingresos cobrados, deducciones autorizadas, base ISR, reserva ISR e IVA
-- Selector de régimen fiscal (RESICO, Actividad Empresarial, tasa manual)
 - Registro de ingresos y gastos con UUID de CFDI, IVA y retenciones
 - Categorías alineadas con deducciones del Art. 27 LISR
 - Motor SIFTING para clasificar gastos deducibles

@@ -35,7 +35,6 @@ import { parseCfdiXml, readFileAsText, isCfdiXml } from './cfdi-xml.js';
 import { exportToXml, exportFullBackupXml, importFromXml, downloadXml } from './xml-export.js';
 
 import {
-  TAX_REGIMES,
   CONTRIBUYENTE_TYPES,
   IVA_OPTIONS,
   CFDI_TYPES,
