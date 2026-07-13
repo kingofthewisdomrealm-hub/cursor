@@ -1,6 +1,22 @@
-# Communicator Merge
+# Florida Storm Map
 
-A mobile-first merge puzzle game where you evolve communication traits — Sharpness, Enthusiasm, and Authority — into legendary archetypes.
+A mobile-first storm intelligence dashboard for roofing, restoration, solar, and storm-recovery teams operating in Florida.
+
+**Where did severe weather happen recently in Florida?**
+
+## Features
+
+- Full-screen interactive Florida map (Leaflet)
+- Color-coded storm markers by severity (Minor → Major)
+- 12 major Florida airport weather stations
+- Storm detail panel with impact radius visualization (1, 3, 5, 10 miles)
+- Filters: date range, storm type, hail size, wind speed, severity, airport
+- Dashboard summary: monthly storm counts and most active region
+- Saved storms (browser local storage, no login required)
+
+## Supported Event Types
+
+Hail, Severe Wind, Tornado, Hurricane, Flooding, Thunderstorm
 
 ## Run locally
 
@@ -22,22 +38,20 @@ npm run preview
 
 - React + TypeScript + Vite
 - Tailwind CSS
-- Framer Motion
-- Lucide React
-- LocalStorage for save data
+- Leaflet / react-leaflet
+- React Router
+- Local Storage
 
-## How to Play
+## Data Architecture
 
-1. Tap **Generate Trait** to add basic tiles to the board.
-2. Tap a tile to select it, then tap another tile to merge (if compatible), an empty cell to move, or a different tile to swap.
-3. Merge identical tiles to evolve along three paths.
-4. Cross-merge Visionary, Catalyst, and Master into archetypes.
-5. Collect all three archetypes and press **ASCEND** to become a Legendary Communicator.
+Storm events are structured for future integration with:
 
-Progress saves automatically in your browser.
+- Airport weather observations (METAR)
+- NOAA Storm Events
+- News-reported severe weather
 
-## Play online
+Version 1 ships with representative sample data across Florida.
 
-**Live preview (temporary):** https://corresponding-sharing-preference-translations.trycloudflare.com/
+## Out of Scope (V1)
 
-**GitHub Pages** (after enabling Pages in repo settings): https://kingofthewisdomrealm-hub.github.io/cursor/
+Property records, lead generation, CRM, canvassing, user accounts, and payments are intentionally excluded.
