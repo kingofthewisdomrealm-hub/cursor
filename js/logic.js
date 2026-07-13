@@ -14,6 +14,7 @@ import {
   getRegimesForContributor,
   getDefaultRegimeForContributor,
   normalizeRegimeId,
+  normalizeContributorType,
 } from './mexico-tax.js';
 
 export function parseAmount(value) {
