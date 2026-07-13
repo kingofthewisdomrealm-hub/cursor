@@ -84,6 +84,28 @@ const VIEW_META = {
   'sat-download': { title: 'Descarga SAT', subtitle: 'Importar CFDI XML desde la plataforma de Hacienda' },
 };
 
+const VIEW_NAV_ORDER = [
+  'dashboard',
+  'income',
+  'expense',
+  'sifting',
+  'documentation',
+  'sat-download',
+  'regime-selector',
+  'calculator',
+  'reports',
+  'score',
+];
+
+const REGIME_SUB_VIEWS = {
+  home: 'Régimen · Inicio',
+  list: 'Régimen · Lista de regímenes',
+  questionnaire: 'Régimen · Cuestionario',
+  results: 'Régimen · Resultados',
+  detail: 'Régimen · Detalle de régimen',
+  admin: 'Régimen · Administración',
+};
+
 const FISCAL_HUB_MODULES = [
   { view: 'sat-download', icon: '⬇', label: 'Descarga SAT', hint: 'Importar XML de emitidos y recibidos' },
   { view: 'regime-selector', icon: '⚖', label: 'Régimen Fiscal', hint: 'Cuestionario y recomendaciones' },
@@ -136,16 +158,116 @@ function closeModal() {
   $('#modal').hidden = true;
 }
 
-function navigate(view) {
-  currentView = view;
-  $$('.nav-item').forEach((btn) => {
-    btn.classList.toggle('active', btn.dataset.view === view);
-  });
-  const meta = VIEW_META[view];
+function getCurrentJumpValue() {
+  if (currentView === 'regime-selector' && rsState.subView !== 'home') {
+    return `regime:${rsState.subView}`;
+  }
+  return currentView;
+}
+
+function populateViewJumpSelect() {
+  const select = $('#view-jump');
+  if (!select) return;
+
+  const current = getCurrentJumpValue();
+  const mainOptions = VIEW_NAV_ORDER.map((id) => {
+    const meta = VIEW_META[id];
+    const selected = current === id ? 'selected' : '';
+    return `<option value="${id}" ${selected}>${meta.title}</option>`;
+  }).join('');
+
+  const regimeOptions = Object.entries(REGIME_SUB_VIEWS).map(([sub, label]) => {
+    const value = `regime:${sub}`;
+    const selected = current === value ? 'selected' : '';
+    return `<option value="${value}" ${selected}>${label}</option>`;
+  }).join('');
+
+  select.innerHTML = `
+    <optgroup label="Secciones principales">${mainOptions}</optgroup>
+    <optgroup label="Selector de régimen">${regimeOptions}</optgroup>
+  `;
+}
+
+function applyViewMeta() {
+  const meta = VIEW_META[currentView];
+  if (!meta) return;
   $('#view-title').textContent = meta.title;
   $('#view-subtitle').textContent = meta.subtitle;
+}
+
+function syncNavUI() {
+  $$('.nav-item').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.view === currentView);
+  });
+  populateViewJumpSelect();
+}
+
+function updateHash() {
+  let hash = currentView;
+  if (currentView === 'regime-selector' && rsState.subView && rsState.subView !== 'home') {
+    hash += `/${rsState.subView}`;
+  }
+  const next = `#${hash}`;
+  if (location.hash !== next) {
+    history.replaceState(null, '', next);
+  }
+}
+
+function parseHash() {
+  const raw = location.hash.replace(/^#/, '').trim();
+  if (!raw) return { view: 'dashboard' };
+  const [view, sub] = raw.split('/');
+  if (view === 'regime-selector') {
+    if (sub && REGIME_SUB_VIEWS[sub]) return { view, regimeSub: sub };
+    return { view, regimeSub: 'home' };
+  }
+  if (VIEW_META[view]) return { view };
+  return { view: 'dashboard' };
+}
+
+function goToRegimeSubView(subView) {
+  currentView = 'regime-selector';
+  rsState.subView = subView;
+  if (subView === 'home') {
+    rsState.searchQuery = '';
+    rsState.adminEditingId = null;
+  }
+  if (subView === 'list' && !rsState.listType) {
+    rsState.listType = 'individual';
+  }
+  syncNavUI();
+  applyViewMeta();
   render();
   closeSidebar();
+  updateHash();
+}
+
+function handleViewJump(value) {
+  if (!value) return;
+  if (value.startsWith('regime:')) {
+    goToRegimeSubView(value.slice(7));
+    return;
+  }
+  navigate(value, { regimeSubView: value === 'regime-selector' ? 'home' : undefined });
+}
+
+function navigate(view, { regimeSubView } = {}) {
+  currentView = view;
+  if (view === 'regime-selector') {
+    rsState.subView = regimeSubView ?? rsState.subView ?? 'home';
+    if (rsState.subView === 'home') {
+      rsState.searchQuery = '';
+      rsState.adminEditingId = null;
+    }
+    if (rsState.subView === 'list' && !rsState.listType) {
+      rsState.listType = 'individual';
+    }
+  }
+  syncNavUI();
+  applyViewMeta();
+  render();
+  closeSidebar();
+  updateHash();
 }
 
 function closeSidebar() {
@@ -1280,7 +1402,11 @@ function render() {
   if (isRegimeModule) {
     content.innerHTML = renderRegimeSelectorModule(rsState, state.settings.taxProfile || {});
     bindRegimeSelector(content, rsState, {
-      onNavigate: () => render(),
+      onNavigate: () => {
+        updateHash();
+        syncNavUI();
+        render();
+      },
       onSaveProfile: saveRegimeToProfile,
       onToast: showToast,
       onQuestionnaireComplete: (profile, recommendedIds) => {
@@ -1294,6 +1420,7 @@ function render() {
         });
       },
     });
+    syncNavUI();
     return;
   }
 
@@ -1312,6 +1439,7 @@ function render() {
   updateSiftingBadge();
   bindViewEvents();
   focusPrimaryAmountInput();
+  syncNavUI();
 }
 
 function focusPrimaryAmountInput() {
@@ -1834,12 +1962,49 @@ function bindViewEvents() {
 }
 
 function init() {
+  const initial = parseHash();
+  currentView = initial.view;
+  if (initial.regimeSub) {
+    rsState.subView = initial.regimeSub;
+    if (rsState.subView === 'list' && !rsState.listType) {
+      rsState.listType = 'individual';
+    }
+  }
+
   $('#current-date').textContent = new Date().toLocaleDateString('es-MX', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
 
   $$('.nav-item').forEach((btn) => {
-    btn.addEventListener('click', () => navigate(btn.dataset.view));
+    btn.addEventListener('click', () => {
+      const view = btn.dataset.view;
+      if (view === currentView && view === 'regime-selector') {
+        goToRegimeSubView('home');
+        return;
+      }
+      navigate(view, { regimeSubView: view === 'regime-selector' ? 'home' : undefined });
+    });
+  });
+
+  const viewJump = $('#view-jump');
+  if (viewJump) {
+    viewJump.addEventListener('change', () => {
+      handleViewJump(viewJump.value);
+    });
+  }
+
+  window.addEventListener('hashchange', () => {
+    const parsed = parseHash();
+    currentView = parsed.view;
+    if (parsed.regimeSub) {
+      rsState.subView = parsed.regimeSub;
+      if (rsState.subView === 'list' && !rsState.listType) {
+        rsState.listType = 'individual';
+      }
+    }
+    syncNavUI();
+    applyViewMeta();
+    render();
   });
 
   $('#menu-toggle').addEventListener('click', () => {
@@ -1853,6 +2018,8 @@ function init() {
     el.addEventListener('click', closeModal);
   });
 
+  syncNavUI();
+  applyViewMeta();
   render();
 }
 
