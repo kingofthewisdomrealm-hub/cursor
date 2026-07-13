@@ -12,6 +12,7 @@ import {
   getClaimFiles,
   updateSupplementStatus,
   setSupplements,
+  DATA_CHANGE_EVENT,
 } from "@/lib/claim-store";
 import { buildSupplementPackage } from "@/lib/supplement-engine";
 import type { Claim, SupplementOpportunity } from "@/types/claim";
@@ -33,6 +34,8 @@ export default function SupplementsPage() {
 
   useEffect(() => {
     refresh();
+    window.addEventListener(DATA_CHANGE_EVENT, refresh);
+    return () => window.removeEventListener(DATA_CHANGE_EVENT, refresh);
   }, [refresh]);
 
   const handleAnalyze = async () => {

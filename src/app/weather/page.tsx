@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
-import { SEED_WEATHER_EVENTS, SEED_CLAIMS } from "@/lib/seed-data";
+import { SEED_WEATHER_EVENTS } from "@/lib/seed-data";
+import { useClaims } from "@/hooks/useClaims";
 import { formatDate } from "@/lib/utils";
 import {
   CloudLightning,
@@ -33,6 +34,7 @@ const EVENT_COLORS = {
 export default function WeatherPage() {
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("all");
+  const userClaims = useClaims();
 
   const filtered =
     filter === "all"
@@ -42,8 +44,9 @@ export default function WeatherPage() {
   const selected = SEED_WEATHER_EVENTS.find((e) => e.id === selectedEvent);
 
   const claimsNearEvent = selected
-    ? SEED_CLAIMS.filter(
+    ? userClaims.filter(
         (c) =>
+          c.lat !== 0 &&
           Math.abs(c.lat - selected.lat) < 0.15 &&
           Math.abs(c.lng - selected.lng) < 0.15
       )
@@ -117,7 +120,7 @@ export default function WeatherPage() {
               );
             })}
 
-            {SEED_CLAIMS.map((claim) => {
+            {userClaims.filter((c) => c.lat !== 0).map((claim) => {
               const x = ((claim.lng + 97) / 0.5) * 100;
               const y = ((33.5 - claim.lat) / 0.5) * 100;
               return (

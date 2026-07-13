@@ -1,24 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { ClaimPipeline, PipelineStats } from "@/components/claims/ClaimPipeline";
-import { getClaims, searchClaims } from "@/lib/claim-store";
-import type { Claim } from "@/types/claim";
-import { LayoutGrid, List } from "lucide-react";
+import { useClaims } from "@/hooks/useClaims";
+import { searchClaims } from "@/lib/claim-store";
+import { LayoutGrid, List, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useMemo, useState } from "react";
 
 export default function DashboardContent() {
   const searchParams = useSearchParams();
   const search = searchParams.get("search") || "";
-  const [claims, setClaims] = useState<Claim[]>([]);
-  const [view, setView] = useState<"pipeline" | "list">("pipeline");
+  const allClaims = useClaims();
+  const [view, setView] = useState<"pipeline" | "list">("list");
 
-  useEffect(() => {
-    const data = search ? searchClaims(search) : getClaims();
-    setClaims(data);
-  }, [search]);
+  const claims = useMemo(
+    () => (search ? searchClaims(search) : allClaims),
+    [search, allClaims]
+  );
 
   return (
     <AppShell>
@@ -28,7 +29,7 @@ export default function DashboardContent() {
             Claims Pipeline
           </h1>
           <p className="text-sm text-zinc-500 mt-1">
-            {search ? `Results for "${search}"` : "Manage claims from FNOL through settlement"}
+            {search ? `Results for "${search}"` : "Your active claims — data saves in this browser"}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -54,15 +55,33 @@ export default function DashboardContent() {
               List
             </button>
           </div>
+          <Link
+            href="/claims/new"
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:from-blue-500 hover:to-indigo-500 shadow-lg shadow-blue-500/20 transition-all"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">New Claim</span>
+            <span className="sm:hidden">New</span>
+          </Link>
         </div>
       </div>
 
-      <PipelineStats claims={claims} />
+      {claims.length > 0 && <PipelineStats claims={claims} />}
       <ClaimPipeline claims={claims} view={view} />
 
       {claims.length === 0 && (
-        <div className="text-center py-16 text-zinc-500">
-          <p className="text-sm">No claims found.</p>
+        <div className="rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/20 py-16 px-6 text-center">
+          <p className="text-lg font-bold text-white mb-2">No claims yet</p>
+          <p className="text-sm text-zinc-500 mb-6 max-w-sm mx-auto">
+            Create your first claim to start tracking files, supplements, and negotiations.
+          </p>
+          <Link
+            href="/claims/new"
+            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-bold text-white hover:bg-blue-500 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Create New Claim
+          </Link>
         </div>
       )}
 

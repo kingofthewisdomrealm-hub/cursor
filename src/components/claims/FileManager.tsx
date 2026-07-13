@@ -13,7 +13,11 @@ import {
   Mail,
   Upload,
   Calculator,
+  Download,
+  Trash2,
+  Loader2,
 } from "lucide-react";
+import { useState } from "react";
 
 const CATEGORY_ICONS: Record<FileCategory, typeof FileText> = {
   carrier_estimate: Calculator,
@@ -30,7 +34,8 @@ const CATEGORY_ICONS: Record<FileCategory, typeof FileText> = {
 
 interface Props {
   files: ClaimFile[];
-  onUpload: (category: FileCategory, fileName: string) => void;
+  onUpload: (category: FileCategory, file: File) => Promise<{ error?: string }>;
+  onDelete: (fileId: string) => void;
 }
 
 const UPLOAD_CATEGORIES: FileCategory[] = [
@@ -46,14 +51,31 @@ const UPLOAD_CATEGORIES: FileCategory[] = [
   "correspondence",
 ];
 
-export function FileManager({ files, onUpload }: Props) {
+export function FileManager({ files, onUpload, onDelete }: Props) {
+  const [uploading, setUploading] = useState<FileCategory | null>(null);
+  const [error, setError] = useState("");
+
   const handleFileSelect = (category: FileCategory) => {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = category === "photo" ? "image/*" : category === "video" ? "video/*" : "*/*";
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) onUpload(category, file.name);
+    input.multiple = category === "photo";
+    input.accept =
+      category === "photo" ? "image/*" : category === "video" ? "video/*" : "*/*";
+    input.onchange = async (e) => {
+      const selected = (e.target as HTMLInputElement).files;
+      if (!selected?.length) return;
+
+      setUploading(category);
+      setError("");
+
+      for (const file of Array.from(selected)) {
+        const result = await onUpload(category, file);
+        if (result.error) {
+          setError(result.error);
+          break;
+        }
+      }
+      setUploading(null);
     };
     input.click();
   };
@@ -68,16 +90,29 @@ export function FileManager({ files, onUpload }: Props) {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          {error}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
         {UPLOAD_CATEGORIES.map((cat) => {
           const Icon = CATEGORY_ICONS[cat];
+          const isUploading = uploading === cat;
           return (
             <button
               key={cat}
+              type="button"
+              disabled={!!uploading}
               onClick={() => handleFileSelect(cat)}
-              className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-zinc-700 hover:border-blue-500/50 hover:bg-blue-500/5 p-3 sm:p-4 transition-all group"
+              className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-zinc-700 hover:border-blue-500/50 hover:bg-blue-500/5 p-3 sm:p-4 transition-all group disabled:opacity-50"
             >
-              <Icon className="h-5 w-5 text-zinc-500 group-hover:text-blue-400" />
+              {isUploading ? (
+                <Loader2 className="h-5 w-5 text-blue-400 animate-spin" />
+              ) : (
+                <Icon className="h-5 w-5 text-zinc-500 group-hover:text-blue-400" />
+              )}
               <span className="text-[10px] sm:text-xs font-medium text-zinc-400 group-hover:text-blue-300 text-center leading-tight">
                 {FILE_CATEGORY_LABELS[cat]}
               </span>
@@ -104,12 +139,40 @@ export function FileManager({ files, onUpload }: Props) {
                   key={file.id}
                   className="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 px-4 py-3"
                 >
-                  <Icon className="h-4 w-4 text-zinc-500 shrink-0" />
+                  {file.url && file.category === "photo" ? (
+                    <img
+                      src={file.url}
+                      alt={file.name}
+                      className="h-12 w-12 rounded-lg object-cover shrink-0"
+                    />
+                  ) : (
+                    <Icon className="h-4 w-4 text-zinc-500 shrink-0" />
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-zinc-200 truncate">{file.name}</p>
                     <p className="text-xs text-zinc-500">
                       {formatFileSize(file.size)} &middot; {formatDate(file.uploadedAt)}
                     </p>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    {file.url && (
+                      <a
+                        href={file.url}
+                        download={file.name}
+                        className="p-2 text-zinc-500 hover:text-blue-400 rounded-lg hover:bg-zinc-800/50"
+                        title="Download"
+                      >
+                        <Download className="h-4 w-4" />
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => onDelete(file.id)}
+                      className="p-2 text-zinc-500 hover:text-red-400 rounded-lg hover:bg-zinc-800/50"
+                      title="Delete"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -121,7 +184,7 @@ export function FileManager({ files, onUpload }: Props) {
       {files.length === 0 && (
         <div className="text-center py-12 text-zinc-500">
           <FileText className="h-10 w-10 mx-auto mb-3 opacity-40" />
-          <p className="text-sm">No files uploaded yet. Use the buttons above to add documents.</p>
+          <p className="text-sm">No files yet. Tap a category above to upload from your device.</p>
         </div>
       )}
     </div>

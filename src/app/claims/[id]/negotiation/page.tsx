@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { ClaimSubNav } from "@/components/claims/ClaimSubNav";
 import { NegotiationTracker } from "@/components/claims/NegotiationTracker";
-import { getClaim, getNegotiations } from "@/lib/claim-store";
+import { getClaim, getNegotiations, addNegotiationEntry, DATA_CHANGE_EVENT } from "@/lib/claim-store";
 import type { Claim, NegotiationEntry } from "@/types/claim";
 import { ArrowLeft } from "lucide-react";
 
@@ -16,10 +16,16 @@ export default function NegotiationPage() {
   const [claim, setClaim] = useState<Claim | null>(null);
   const [entries, setEntries] = useState<NegotiationEntry[]>([]);
 
-  useEffect(() => {
+  const refresh = useCallback(() => {
     setClaim(getClaim(claimId) || null);
     setEntries(getNegotiations(claimId));
   }, [claimId]);
+
+  useEffect(() => {
+    refresh();
+    window.addEventListener(DATA_CHANGE_EVENT, refresh);
+    return () => window.removeEventListener(DATA_CHANGE_EVENT, refresh);
+  }, [refresh]);
 
   if (!claim) {
     return (
@@ -44,11 +50,18 @@ export default function NegotiationPage() {
 
       <h1 className="text-2xl font-black text-white mb-1">Negotiation Center</h1>
       <p className="text-sm text-zinc-500 mb-6">
-        Track offers, supplements, and claim value growth
+        Log carrier offers, supplements, and payments
       </p>
 
       <ClaimSubNav claimId={claimId} />
-      <NegotiationTracker entries={entries} initialOffer={initialOffer} />
+      <NegotiationTracker
+        entries={entries}
+        initialOffer={initialOffer}
+        onAdd={(entry) => {
+          addNegotiationEntry(claimId, entry);
+          refresh();
+        }}
+      />
 
       <div className="h-16 lg:hidden" />
     </AppShell>

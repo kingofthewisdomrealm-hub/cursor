@@ -12,12 +12,14 @@ import {
   Search,
   Moon,
   Sun,
+  Plus,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/claims/new", label: "New Claim", icon: Plus },
   { href: "/weather", label: "Weather Intel", icon: CloudLightning },
   { href: "/predictions", label: "Settlement Predictor", icon: TrendingUp },
 ];
