@@ -13,7 +13,7 @@ import { FilterPanel } from '../components/FilterPanel'
 import { MapLegend } from '../components/MapLegend'
 import { StormDetailPanel } from '../components/StormDetailPanel'
 import { StormMap } from '../components/StormMap'
-import type { ImpactRadiusMiles, StormEvent, StormFilters } from '../types/storm'
+import type { StormEvent, StormFilters } from '../types/storm'
 
 function countActiveFilters(filters: StormFilters, defaults: StormFilters): number {
   let count = 0
@@ -31,7 +31,6 @@ export function MapPage() {
   const [filters, setFilters] = useState<StormFilters>(defaultFilters)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [selectedStorm, setSelectedStorm] = useState<StormEvent | null>(null)
-  const [impactRadius, setImpactRadius] = useState<ImpactRadiusMiles | null>(null)
   const { isSaved, toggleSave } = useSavedStorms()
 
   const filteredStorms = useMemo(() => filterStorms(STORM_EVENTS, filters), [filters])
@@ -40,12 +39,10 @@ export function MapPage() {
 
   const handleSelectStorm = (storm: StormEvent) => {
     setSelectedStorm(storm)
-    setImpactRadius(null)
   }
 
   const handleCloseDetail = () => {
     setSelectedStorm(null)
-    setImpactRadius(null)
   }
 
   return (
@@ -78,7 +75,6 @@ export function MapPage() {
           <StormMap
             storms={filteredStorms}
             selectedStorm={selectedStorm}
-            impactRadius={impactRadius}
             onSelectStorm={handleSelectStorm}
           />
         </div>
@@ -87,8 +83,6 @@ export function MapPage() {
           <div className="h-[45vh] shrink-0 md:h-auto md:w-96">
             <StormDetailPanel
               storm={selectedStorm}
-              impactRadius={impactRadius}
-              onImpactRadiusChange={setImpactRadius}
               isSaved={isSaved(selectedStorm.id)}
               onToggleSave={() => toggleSave(selectedStorm)}
               onClose={handleCloseDetail}

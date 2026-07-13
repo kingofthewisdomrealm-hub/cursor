@@ -30,6 +30,8 @@ export interface StormEvent {
   longitude: number
   windSpeed: number | null
   hailSize: number | null
+  /** Estimated damage area radius in miles; derived automatically when omitted */
+  damageRadiusMiles?: number
   source: DataSource
   notes: string
 }
@@ -52,8 +54,6 @@ export interface StormFilters {
   severities: SeverityLevel[]
   airportCode: string | null
 }
-
-export type ImpactRadiusMiles = 1 | 3 | 5 | 10
 
 export const STORM_EVENT_LABELS: Record<StormEventType, string> = {
   hail: 'Hail',

@@ -1,10 +1,10 @@
-import { Circle, MapContainer, TileLayer, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, useMap } from 'react-leaflet'
 import { useEffect } from 'react'
 import { FLORIDA_AIRPORTS } from '../data/airports'
-import { milesToMeters } from '../lib/geo'
 import { AirportMarker } from './AirportMarker'
+import { DangerZoneCircle } from './DangerZoneCircle'
 import { StormMarker } from './StormMarker'
-import type { ImpactRadiusMiles, StormEvent } from '../types/storm'
+import type { StormEvent } from '../types/storm'
 
 const FLORIDA_CENTER: [number, number] = [27.5, -82.5]
 const FLORIDA_ZOOM = 7
@@ -12,7 +12,6 @@ const FLORIDA_ZOOM = 7
 interface StormMapProps {
   storms: StormEvent[]
   selectedStorm: StormEvent | null
-  impactRadius: ImpactRadiusMiles | null
   onSelectStorm: (storm: StormEvent) => void
 }
 
@@ -29,7 +28,7 @@ function FlyToSelected({ storm }: { storm: StormEvent | null }) {
   const map = useMap()
   useEffect(() => {
     if (storm) {
-      map.flyTo([storm.latitude, storm.longitude], Math.max(map.getZoom(), 9), {
+      map.flyTo([storm.latitude, storm.longitude], Math.max(map.getZoom(), 10), {
         duration: 0.6,
       })
     }
@@ -37,7 +36,11 @@ function FlyToSelected({ storm }: { storm: StormEvent | null }) {
   return null
 }
 
-export function StormMap({ storms, selectedStorm, impactRadius, onSelectStorm }: StormMapProps) {
+export function StormMap({ storms, selectedStorm, onSelectStorm }: StormMapProps) {
+  const unselectedStorms = selectedStorm
+    ? storms.filter((storm) => storm.id !== selectedStorm.id)
+    : storms
+
   return (
     <MapContainer
       center={FLORIDA_CENTER}
@@ -61,6 +64,10 @@ export function StormMap({ storms, selectedStorm, impactRadius, onSelectStorm }:
         <AirportMarker key={airport.code} airport={airport} />
       ))}
 
+      {unselectedStorms.map((storm) => (
+        <DangerZoneCircle key={`zone-${storm.id}`} storm={storm} isSelected={false} />
+      ))}
+
       {storms.map((storm) => (
         <StormMarker
           key={storm.id}
@@ -70,18 +77,8 @@ export function StormMap({ storms, selectedStorm, impactRadius, onSelectStorm }:
         />
       ))}
 
-      {selectedStorm && impactRadius && (
-        <Circle
-          center={[selectedStorm.latitude, selectedStorm.longitude]}
-          radius={milesToMeters(impactRadius)}
-          pathOptions={{
-            color: '#38bdf8',
-            fillColor: '#38bdf8',
-            fillOpacity: 0.12,
-            weight: 2,
-            dashArray: '6 4',
-          }}
-        />
+      {selectedStorm && (
+        <DangerZoneCircle storm={selectedStorm} isSelected />
       )}
     </MapContainer>
   )

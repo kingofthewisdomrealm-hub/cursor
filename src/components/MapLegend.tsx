@@ -17,7 +17,11 @@ export function MapLegend() {
           </div>
         ))}
       </div>
-      <div className="mt-2 border-t border-slate-700/50 pt-2">
+      <div className="mt-2 border-t border-slate-700/50 pt-2 space-y-1.5">
+        <div className="flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-full border border-dashed border-orange-400/80 bg-orange-400/20" />
+          <span className="text-[11px] text-slate-300">Danger Zone</span>
+        </div>
         <div className="flex items-center gap-2">
           <span className="flex h-2.5 w-2.5 items-center justify-center rounded-sm bg-sky-500 text-[6px] text-white">
             ✈

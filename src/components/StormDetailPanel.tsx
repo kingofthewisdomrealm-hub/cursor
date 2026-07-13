@@ -1,20 +1,20 @@
-import { Bookmark, BookmarkCheck, X } from 'lucide-react'
+import { AlertTriangle, Bookmark, BookmarkCheck, X } from 'lucide-react'
 import { AIRPORT_BY_CODE } from '../data/airports'
 import { formatDate, formatHailSize, formatWindSpeed, getEventIcon } from '../lib/format'
+import {
+  getDangerZoneDescription,
+  getDangerZoneRadiusMiles,
+} from '../lib/dangerZone'
 import {
   DATA_SOURCE_LABELS,
   SEVERITY_COLORS,
   SEVERITY_LABELS,
   STORM_EVENT_LABELS,
 } from '../types/storm'
-import type { ImpactRadiusMiles, StormEvent } from '../types/storm'
-
-const RADIUS_OPTIONS: ImpactRadiusMiles[] = [1, 3, 5, 10]
+import type { StormEvent } from '../types/storm'
 
 interface StormDetailPanelProps {
   storm: StormEvent
-  impactRadius: ImpactRadiusMiles | null
-  onImpactRadiusChange: (radius: ImpactRadiusMiles | null) => void
   isSaved: boolean
   onToggleSave: () => void
   onClose: () => void
@@ -22,13 +22,12 @@ interface StormDetailPanelProps {
 
 export function StormDetailPanel({
   storm,
-  impactRadius,
-  onImpactRadiusChange,
   isSaved,
   onToggleSave,
   onClose,
 }: StormDetailPanelProps) {
   const airport = AIRPORT_BY_CODE[storm.airportCode]
+  const dangerZoneMiles = getDangerZoneRadiusMiles(storm)
 
   return (
     <aside className="flex h-full flex-col border-t border-slate-700/60 bg-slate-900 md:border-t-0 md:border-l">
@@ -96,29 +95,26 @@ export function StormDetailPanel({
           </div>
         )}
 
-        <div className="mt-5 rounded-lg border border-sky-500/30 bg-sky-500/5 p-3">
-          <p className="mb-2 text-sm font-semibold text-sky-300">Estimated Impact Area</p>
-          <div className="mb-3 flex flex-wrap gap-2">
-            {RADIUS_OPTIONS.map((radius) => (
-              <button
-                key={radius}
-                type="button"
-                onClick={() =>
-                  onImpactRadiusChange(impactRadius === radius ? null : radius)
-                }
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                  impactRadius === radius
-                    ? 'bg-sky-500 text-white'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                }`}
-              >
-                {radius} mi
-              </button>
-            ))}
+        <div
+          className="mt-5 rounded-lg border p-3"
+          style={{
+            borderColor: `${SEVERITY_COLORS[storm.severity]}55`,
+            backgroundColor: `${SEVERITY_COLORS[storm.severity]}12`,
+          }}
+        >
+          <div className="mb-2 flex items-center gap-2">
+            <AlertTriangle
+              className="h-4 w-4"
+              style={{ color: SEVERITY_COLORS[storm.severity] }}
+            />
+            <p className="text-sm font-semibold text-slate-100">Danger Zone</p>
           </div>
-          <p className="text-[11px] leading-relaxed text-slate-500">
-            This radius is an estimate for planning and visualization purposes only and does
-            not confirm property damage.
+          <p className="text-2xl font-bold text-slate-100">{dangerZoneMiles} miles</p>
+          <p className="mt-1 text-sm text-slate-300">{getDangerZoneDescription(storm)}</p>
+          <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
+            The shaded circle on the map shows the estimated damage area where this storm
+            hit. This is for planning and visualization only and does not confirm property
+            damage.
           </p>
         </div>
       </div>
