@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { useClaims } from "@/hooks/useClaims";
@@ -23,7 +24,11 @@ function predictForClaim(claim: { id: string; currentValue: number; potentialSup
 }
 
 export default function PredictionsPage() {
-  const claims = useClaims((c) => c.filter((x) => x.status !== "closed"));
+  const allClaims = useClaims();
+  const claims = useMemo(
+    () => allClaims.filter((x) => x.status !== "closed"),
+    [allClaims]
+  );
 
   const predictions = claims.map((claim) => ({
     ...predictForClaim(claim),
