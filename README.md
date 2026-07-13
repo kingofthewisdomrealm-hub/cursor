@@ -38,6 +38,6 @@ Progress saves automatically in your browser.
 
 ## Play online
 
-After deployment, the game is available at:
+**Live preview (temporary):** https://corresponding-sharing-preference-translations.trycloudflare.com/
 
-**https://kingofthewisdomrealm-hub.github.io/cursor/**
+**GitHub Pages** (after enabling Pages in repo settings): https://kingofthewisdomrealm-hub.github.io/cursor/
