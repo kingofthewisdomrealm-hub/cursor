@@ -1,62 +1,87 @@
-# Florida Storm Map
+# Outcome Agent
 
-A mobile-first storm intelligence dashboard for roofing, restoration, solar, and storm-recovery teams operating in Florida.
-
-**Where did severe weather happen recently in Florida?**
+Transform vague outcomes into executable missions. Outcome Agent is your AI project manager — it converts goals like "fill my seminar with 30 people" into practical execution plans with daily tasks, progress tracking, and adaptive strategy.
 
 ## Features
 
-- Full-screen interactive Florida map (Leaflet)
-- Color-coded storm markers by severity (Minor → Major)
-- 12 major Florida airport weather stations
-- Storm detail panel with impact radius visualization (1, 3, 5, 10 miles)
-- Filters: date range, storm type, hail size, wind speed, severity, airport
-- Dashboard summary: monthly storm counts and most active region
-- Saved storms (browser local storage, no login required)
+- **Outcome Input** — Describe what you want to achieve in plain language
+- **Mission Clarification** — AI asks only the essential questions (3–5 max)
+- **Mission Plan Generation** — Structured plan with stages, tasks, and next best action
+- **Mission Dashboard** — Progress bar, current stage, deadline, and active tasks
+- **Task Execution** — Approve, edit, complete, or skip tasks with suggested content
+- **Daily Agent Briefing** — Today's priorities and agent recommendations
+- **Learning Loop** — Submit results; agent adapts strategy based on conversion data
 
-## Supported Event Types
+## Tech Stack
 
-Hail, Severe Wind, Tornado, Hurricane, Flooding, Thunderstorm
+- **Next.js 15** (App Router) + TypeScript
+- **Tailwind CSS 4** — dark mission-control UI
+- **Supabase** — authentication and database (optional)
+- **OpenAI API** — mission planning and task generation (optional)
 
-## Run locally
+## Quick Start
 
 ```bash
 npm install
+cp .env.example .env.local
 npm run dev
 ```
 
-Open the URL shown in the terminal (typically http://localhost:5173).
+Open [http://localhost:3000](http://localhost:3000).
+
+### Demo Mode
+
+The app works without API keys. Without OpenAI configured, it uses intelligent demo plans. Without Supabase, missions are stored in browser localStorage.
+
+### Full Setup
+
+1. Create a [Supabase](https://supabase.com) project
+2. Run the migration in `supabase/migrations/001_initial.sql`
+3. Add your Supabase URL and anon key to `.env.local`
+4. Add your OpenAI API key to `.env.local`
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+OPENAI_API_KEY=sk-your-openai-key
+```
+
+## User Flow
+
+1. **Enter Outcome** — "Help me fill The Sifting Method seminar with 30 people."
+2. **Clarify Mission** — Answer deadline, format, audience questions
+3. **Generate Plan** — Review stages, tasks, and next best action
+4. **Mission Dashboard** — Track progress and current stage
+5. **Execute Tasks** — Approve outreach, edit messages, mark complete
+6. **Daily Briefing** — See today's priorities and agent recommendations
+7. **Learning Loop** — Report results; agent updates strategy
+
+## Database Tables
+
+- `users` — user profiles (extends Supabase auth)
+- `missions` — mission goals and metadata
+- `mission_questions` — clarification Q&A
+- `mission_stages` — execution stages
+- `tasks` — actionable tasks with status
+- `task_results` — learning loop data
+- `agent_recommendations` — strategy and briefing updates
+
+## Agent Capabilities (V1)
+
+- Research strategies
+- Break outcomes into tasks
+- Generate outreach messages
+- Create social posts
+- Create prospect lists
+- Recommend next actions
+- Track progress
+- Adapt plans based on results
+
+**Safety:** The agent never automatically spends money, sends messages, or accesses financial accounts. External actions require user approval.
 
 ## Build
 
 ```bash
 npm run build
-npm run preview
+npm start
 ```
-
-## Tech Stack
-
-- React + TypeScript + Vite
-- Tailwind CSS
-- Leaflet / react-leaflet
-- React Router
-- Local Storage
-
-## Data Architecture
-
-Storm events are structured for future integration with:
-
-- Airport weather observations (METAR)
-- NOAA Storm Events
-- News-reported severe weather
-
-Version 1 ships with representative sample data across Florida.
-
-## Play online
-
-**Live demo (share with friends):** https://cdn.jsdelivr.net/gh/kingofthewisdomrealm-hub/cursor@gh-pages/index.html
-
-**GitHub Pages (optional):** https://kingofthewisdomrealm-hub.github.io/cursor/
-
-> To enable GitHub Pages: [Settings → Pages](https://github.com/kingofthewisdomrealm-hub/cursor/settings/pages)
-> → Source: **Deploy from a branch** → Branch: **gh-pages** → **/ (root)** → Save.
