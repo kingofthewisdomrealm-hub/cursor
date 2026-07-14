@@ -1,82 +1,106 @@
-# ClaimPilot AI
+# Voice Agent MVP
 
-Public adjusting and supplement platform for public adjusters, roofing contractors, restoration companies, and supplement specialists.
+Browser-based speech-to-speech voice agent built with **Next.js**, the **OpenAI Agents SDK** (`RealtimeAgent` + `RealtimeSession`), and the **OpenAI Realtime API over WebRTC**.
 
-Manage insurance claims from first notice of loss through final settlement while identifying missed scope items and generating supplement packages.
+Press **Start Conversation**, allow the microphone, and talk naturally with your agent. Interrupt anytime. End when you are done.
 
-## Features
+## What you get
 
-### Core Dashboard
-- Kanban pipeline: New Loss → Inspection Scheduled → Inspection Complete → Estimate Received → Supplementing → Negotiation → Settlement → Closed
-- Claim cards with homeowner info, property address, carrier, claim number, date of loss, values, status, and assigned team member
-- Pipeline and list views with fast search
+- Communication Coach default agent (editable personality)
+- Start / Mute / Unmute / End controls
+- Live status: Ready, Connecting, Listening, Thinking, Speaking, Disconnected, Error
+- Live scrolling transcript (User / Agent)
+- Admin settings saved in `localStorage`:
+  - Agent name
+  - Description
+  - Instructions
+  - Opening greeting
+  - Voice
+  - Speaking speed
+  - Maximum response length
+- Secure `/api/session` endpoint that mints a short-lived Realtime client secret
+- Permanent `OPENAI_API_KEY` never sent to the browser
 
-### Claim File Management
-- Upload carrier estimates, contractor estimates, PA estimates, photos, videos, engineer reports, weather reports, invoices, receipts, and correspondence
-- Files automatically organized by claim and category
+## Requirements
 
-### AI Supplement Engine
-- Analyzes carrier vs. contractor estimates and claim notes
-- Identifies missing line items with confidence scores
-- Flags code-related items, roofing, water mitigation, and interior restoration gaps
-- Examples: starter strip, drip edge, ice barrier, valley metal, flashing, permit fees, dumpster, detach/reset, paint matching
+- Node.js 18+
+- An OpenAI API key with Realtime API access
+- A modern browser with microphone + WebRTC support (Chrome, Safari, Edge)
+- `localhost` or HTTPS (required for microphone permissions)
 
-### Supplement Opportunity Center
-- Review AI recommendations with reasons, supporting docs, estimated value, and confidence
-- Approve or reject each opportunity
-
-### AI Supplement Package Builder
-- One-click generation of cover letter, scope summary, missing item report, documentation list, photo references, and code compliance references
-- Export to PDF via print dialog
-
-### Damage Analysis
-- AI categorizes damage: roof, interior, exterior, water, wind, hail, fire
-- Auto-groups photos and suggests additional documentation
-
-### Weather Intelligence
-- Interactive storm event map with hail, wind, tornado, and severe weather reports
-- Storm verification data linked to claim addresses
-
-### Negotiation Center
-- Track initial offers, supplements submitted, additional payments, total recovered, and outstanding amounts
-- Visual claim value growth chart
-
-### Settlement Predictor
-- Likely settlement range, expected supplement approval percentage, and potential final claim value
-- Visual range indicators per claim
-
-## Tech Stack
-
-- **Next.js 15** (App Router) + TypeScript
-- **Tailwind CSS 4** — professional insurance software aesthetic with dark/light mode
-- **Supabase** — optional backend (demo uses localStorage)
-- **OpenAI API** — optional AI analysis (demo uses intelligent fallback)
-
-## Quick Start
+## Install
 
 ```bash
 npm install
 cp .env.example .env.local
+```
+
+Edit `.env.local`:
+
+```env
+OPENAI_API_KEY=sk-your-openai-api-key
+```
+
+## Run locally
+
+```bash
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### Demo Mode
+1. Optionally open the settings gear and adjust the agent.
+2. Press **Start Conversation**.
+3. Allow microphone access when prompted.
+4. Speak naturally. Interrupt the agent by talking over it.
+5. Press **End Conversation** when finished.
 
-Works without API keys. Claims and data are stored in browser localStorage with realistic seed data.
+## How it works
 
-### Full Setup
+1. The browser calls `POST /api/session`.
+2. The Next.js route uses your server-side `OPENAI_API_KEY` to request an ephemeral client secret from `https://api.openai.com/v1/realtime/client_secrets`.
+3. The browser creates a `RealtimeAgent` + `RealtimeSession` and connects with that ephemeral key over WebRTC.
+4. The SDK handles microphone capture, playback, interruptions, and turn-taking.
+5. Transcripts update from Realtime history / transcription events.
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-OPENAI_API_KEY=sk-your-openai-key
-```
+## Default agent
 
-## Build
+**Name:** Communication Coach
+
+**Opening greeting:**  
+“Welcome. What communication skill would you like to practice today?”
+
+**Personality:** Direct, intelligent, energetic. Short responses. One question at a time. Brief feedback, then a stronger retry.
+
+## Error messages to expect
+
+| Situation | What you will see |
+| --- | --- |
+| Missing `OPENAI_API_KEY` | Clear server error from `/api/session` |
+| Mic permission denied | Instruction to allow microphone access and retry |
+| No microphone found | Prompt to connect/enable a mic |
+| Mic already in use | Prompt to close the other app |
+| OpenAI API failure | The API error message, without exposing your permanent key |
+
+## Scripts
 
 ```bash
-npm run build
-npm start
+npm run dev      # local development
+npm run build    # production build
+npm run start    # serve production build
+npm run lint     # eslint
 ```
+
+## MVP limits
+
+Intentionally not included:
+
+- Twilio / phone numbers
+- User accounts
+- Payments
+- Database
+- CRM / calendar integrations
+- Outbound calls
+- Multi-user analytics
+
+Validate whether the coach is useful to talk to first. Then add specialized agents, accounts, and telephone access later.
