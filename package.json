@@ -1,5 +1,5 @@
 {
-  "name": "claimpilot-ai",
+  "name": "voice-agent-mvp",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,14 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.49.8",
+    "@openai/agents": "^0.13.3",
     "lucide-react": "^0.511.0",
     "next": "^15.3.3",
-    "openai": "^4.103.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "uuid": "^11.1.0"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
@@ -24,10 +22,10 @@
     "@types/node": "^22.15.21",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",
-    "@types/uuid": "^10.0.0",
     "eslint": "^9.27.0",
     "eslint-config-next": "^15.3.3",
     "tailwindcss": "^4.1.8",
     "typescript": "^5.8.3"
-  }
+  },
+  "description": "Browser-based OpenAI Realtime voice agent MVP"
 }
