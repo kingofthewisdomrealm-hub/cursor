@@ -1,11 +1,24 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --color-cp-bg: #09090b;
-  --color-cp-card: #18181b;
-  --color-cp-border: #27272a;
-  --color-cp-accent: #3b82f6;
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+
+  --color-sand: #f7f3ec;
+  --color-sand-deep: #ebe4d8;
+  --color-ink: #1f2a24;
+  --color-ink-soft: #4a5a52;
+  --color-mist: #d8e3dc;
+  --color-leaf: #3d7a6a;
+  --color-leaf-deep: #2a5a4e;
+  --color-clay: #c4785a;
+
+  --color-vata: #6b8fad;
+  --color-vata-soft: #e4eef5;
+  --color-pitta: #d4845a;
+  --color-pitta-soft: #f7ebe3;
+  --color-kapha: #3d7a6a;
+  --color-kapha-soft: #e2efe9;
 }
 
 @layer base {
@@ -14,48 +27,90 @@
   }
 
   body {
-    @apply bg-[#09090b] text-zinc-100 antialiased;
+    @apply bg-sand text-ink antialiased;
     background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.08), transparent),
-      radial-gradient(ellipse 60% 40% at 100% 100%, rgba(99, 102, 241, 0.06), transparent);
+      radial-gradient(ellipse 90% 60% at 10% -10%, rgba(107, 143, 173, 0.14), transparent 55%),
+      radial-gradient(ellipse 70% 50% at 100% 0%, rgba(61, 122, 106, 0.12), transparent 50%),
+      radial-gradient(ellipse 60% 40% at 50% 100%, rgba(212, 132, 90, 0.08), transparent 55%);
     min-height: 100vh;
   }
 
-  html.light body {
-    @apply bg-zinc-50 text-zinc-900;
-    background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.05), transparent);
-  }
-
-  html.light .border-zinc-800\/80 {
-    border-color: rgba(228, 228, 231, 0.8);
-  }
-
-  html.light .bg-zinc-900\/40,
-  html.light .bg-zinc-900\/60 {
-    background-color: rgba(255, 255, 255, 0.8);
-  }
-
-  html.light .bg-zinc-950\/80,
-  html.light .bg-zinc-950\/95 {
-    background-color: rgba(255, 255, 255, 0.95);
-  }
-
-  html.light .text-white {
-    color: #18181b;
-  }
-
-  html.light .text-zinc-300,
-  html.light .text-zinc-200 {
-    color: #3f3f46;
-  }
-
-  html.light .text-zinc-400,
-  html.light .text-zinc-500 {
-    color: #71717a;
-  }
-
   ::selection {
-    @apply bg-blue-500/30 text-white;
+    background: rgba(61, 122, 106, 0.25);
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .animate-fade-up {
+    animation: fadeUp 0.7s ease-out both;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out both;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.45s ease-out both;
+  }
+
+  .animate-breathe {
+    animation: breathe 5s ease-in-out infinite;
+  }
+
+  .animate-progress {
+    animation: progressGrow 0.8s ease-out both;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+}
+
+@keyframes progressGrow {
+  from {
+    width: 0%;
   }
 }
