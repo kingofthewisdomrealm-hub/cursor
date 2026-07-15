@@ -1,38 +1,45 @@
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
 }
 
-export function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
+export function formatStormType(type: string): string {
+  return type
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+export function formatConfidence(level: string): string {
+  return level.charAt(0).toUpperCase() + level.slice(1);
+}
+
+export function hoursAgo(isoDate: string, time: string): number {
+  const dt = new Date(`${isoDate}T${time}:00`);
+  return (Date.now() - dt.getTime()) / (1000 * 60 * 60);
+}
+
+export function openGoogleMapsRoute(
+  points: { lat: number; lng: number; label?: string }[]
+): string {
+  if (points.length === 0) return "https://www.google.com/maps";
+  if (points.length === 1) {
+    return `https://www.google.com/maps/search/?api=1&query=${points[0].lat},${points[0].lng}`;
+  }
+  const origin = `${points[0].lat},${points[0].lng}`;
+  const destination = `${points[points.length - 1].lat},${points[points.length - 1].lng}`;
+  const waypoints = points
+    .slice(1, -1)
+    .map((p) => `${p.lat},${p.lng}`)
+    .join("|");
+  const params = new URLSearchParams({
+    api: "1",
+    origin,
+    destination,
+    travelmode: "driving",
   });
-}
-
-export function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-export function cn(...classes: (string | false | undefined | null)[]): string {
-  return classes.filter(Boolean).join(" ");
-}
-
-export function confidenceColor(score: number): string {
-  if (score >= 85) return "text-emerald-400";
-  if (score >= 70) return "text-amber-400";
-  return "text-orange-400";
-}
-
-export function confidenceBg(score: number): string {
-  if (score >= 85) return "bg-emerald-500/20 border-emerald-500/30";
-  if (score >= 70) return "bg-amber-500/20 border-amber-500/30";
-  return "bg-orange-500/20 border-orange-500/30";
+  if (waypoints) params.set("waypoints", waypoints);
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
 }
