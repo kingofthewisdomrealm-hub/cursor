@@ -1,5 +1,5 @@
 {
-  "name": "claimpilot-ai",
+  "name": "dosha-yoga",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -13,7 +13,6 @@
     "@supabase/supabase-js": "^2.49.8",
     "lucide-react": "^0.511.0",
     "next": "^15.3.3",
-    "openai": "^4.103.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "uuid": "^11.1.0"

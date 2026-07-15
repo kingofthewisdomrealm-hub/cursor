@@ -1,10 +1,7 @@
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
+import type { DesiredOutcome, DoshaType, Mood } from "@/types";
+
+export function cn(...classes: (string | false | undefined | null)[]): string {
+  return classes.filter(Boolean).join(" ");
 }
 
 export function formatDate(date: string): string {
@@ -15,24 +12,41 @@ export function formatDate(date: string): string {
   });
 }
 
-export function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+export function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return s === 0 ? `${m} min` : `${m}m ${s}s`;
 }
 
-export function cn(...classes: (string | false | undefined | null)[]): string {
-  return classes.filter(Boolean).join(" ");
+export function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-export function confidenceColor(score: number): string {
-  if (score >= 85) return "text-emerald-400";
-  if (score >= 70) return "text-amber-400";
-  return "text-orange-400";
+export function outcomeLabel(outcome: DesiredOutcome): string {
+  const map: Record<DesiredOutcome, string> = {
+    reduce_stress: "Reduce stress",
+    increase_energy: "Increase energy",
+    improve_sleep: "Improve sleep",
+    improve_flexibility: "Improve flexibility",
+    improve_focus: "Improve focus",
+    ground_nervous_system: "Ground the nervous system",
+    cool_the_body: "Cool the body",
+    build_strength: "Build strength",
+  };
+  return map[outcome];
 }
 
-export function confidenceBg(score: number): string {
-  if (score >= 85) return "bg-emerald-500/20 border-emerald-500/30";
-  if (score >= 70) return "bg-amber-500/20 border-amber-500/30";
-  return "bg-orange-500/20 border-orange-500/30";
+export function moodLabel(mood: Mood): string {
+  return capitalize(mood.replace("_", " "));
+}
+
+export function doshaGradient(dosha: DoshaType): string {
+  if (dosha === "vata") return "from-vata/30 via-vata-soft to-transparent";
+  if (dosha === "pitta") return "from-pitta/30 via-pitta-soft to-transparent";
+  return "from-kapha/30 via-kapha-soft to-transparent";
+}
+
+export function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
 }
