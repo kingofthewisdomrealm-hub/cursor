@@ -18,16 +18,14 @@ interface Props {
 }
 
 function cloneSnap(s: EngineSnapshot): EngineSnapshot {
+  // Entity arrays stay shared — React HUD never mutates them.
+  // Copy only values React overlays may treat as discrete UI state.
   return {
     ...s,
-    obstacles: [...s.obstacles],
-    projectiles: [...s.projectiles],
-    pickups: [...s.pickups],
-    transforms: [...s.transforms],
-    floats: [...s.floats],
     skills: s.skills.map((sk) => ({ ...sk })),
     upgrades: s.upgrades.map((u) => ({ ...u })),
-    levelChoices: [...s.levelChoices],
+    levelChoices: s.levelChoices.map((c) => ({ ...c })),
+    summary: s.summary ? { ...s.summary } : null,
   };
 }
 
@@ -103,6 +101,9 @@ export function GameArena({ environmentId }: Props) {
     let raf = 0;
     let last = performance.now();
     let time = 0;
+    let hudAcc = 0;
+    let lastStatus = "";
+    let lastSkillSig = "";
 
     const loop = (now: number) => {
       const dt = Math.min(0.033, (now - last) / 1000);
@@ -128,8 +129,26 @@ export function GameArena({ environmentId }: Props) {
       }
 
       const s = engine.snapshot();
-      setSnap(cloneSnap(s));
       drawGame(ctx, s, engine.width, engine.height, time);
+
+      hudAcc += dt;
+      const skillSig = s.skills.map((sk) => `${sk.id}:${sk.level}`).join("|");
+      const statusChanged = s.status !== lastStatus;
+      const skillsChanged = skillSig !== lastSkillSig;
+      const needsImmediate =
+        statusChanged ||
+        skillsChanged ||
+        s.status === "levelUp" ||
+        s.status === "waveClear" ||
+        s.status === "defeat" ||
+        s.status === "victory";
+
+      if (needsImmediate || hudAcc >= 0.1) {
+        hudAcc = 0;
+        lastStatus = s.status;
+        lastSkillSig = skillSig;
+        setSnap(cloneSnap(s));
+      }
 
       if (s.status === "waveClear" && !learnOpenRef.current && !pausedRef.current) {
         learnOpenRef.current = true;
