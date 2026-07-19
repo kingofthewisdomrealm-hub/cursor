@@ -56,7 +56,7 @@ export function saveProgress(state: ProgressState) {
   localStorage.setItem(KEY, JSON.stringify(state));
 }
 
-export function recordRun(summary: RunSummary, masteredScenarioId?: string) {
+export function recordRun(summary: RunSummary, masteredScenarioIds?: string[]) {
   const prev = loadProgress();
   const unlockedDisciplines = new Set(prev.unlockedDisciplines);
   const unlockedEnvironments = new Set(prev.unlockedEnvironments);
@@ -84,7 +84,7 @@ export function recordRun(summary: RunSummary, masteredScenarioId?: string) {
   if (summary.wave >= 9) unlockedEnvironments.add("tradeShow");
 
   const mastered = new Set(prev.masteredScenarios);
-  if (masteredScenarioId) mastered.add(masteredScenarioId);
+  for (const id of masteredScenarioIds ?? []) mastered.add(id);
 
   const next: ProgressState = {
     bestConfidence: Math.max(prev.bestConfidence, summary.confidence),

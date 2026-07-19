@@ -212,6 +212,7 @@ export interface Projectile {
   life: number;
   color: string;
   radius: number;
+  hitIds: Set<number>;
 }
 
 export interface Pickup {

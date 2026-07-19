@@ -1,5 +1,5 @@
 import { BOSSES } from "@/data/bosses";
-import { ENVIRONMENTS, ENVIRONMENT_MAP } from "@/data/environments";
+import { ENVIRONMENT_MAP } from "@/data/environments";
 import { OBSTACLE_MAP, OBSTACLES } from "@/data/obstacles";
 import { SKILL_MAP, SKILLS, STARTER_SKILL } from "@/data/skills";
 import { UPGRADE_MAP, UPGRADES } from "@/data/upgrades";
@@ -126,6 +126,7 @@ export class GameEngine {
     };
     if (environmentId) this.environmentId = environmentId;
     else this.environmentId = "networking";
+    this.refreshDerivedStats();
   }
 
   resize(width: number, height: number) {
@@ -225,7 +226,8 @@ export class GameEngine {
   }
 
   private spawnBoss() {
-    const boss = pick(BOSSES);
+    const themed = BOSSES.filter((b) => b.environment === this.environmentId);
+    const boss = pick(themed.length ? themed : BOSSES);
     const edge = Math.random() < 0.5 ? -40 : this.width + 40;
     const entity: ObstacleEntity = {
       id: this.nextId++,
@@ -340,6 +342,7 @@ export class GameEngine {
           life: 1.4,
           color: def.color,
           radius: 7 + owned.level,
+          hitIds: new Set(),
         });
       }
     }
@@ -517,11 +520,7 @@ export class GameEngine {
     this.waveTimer = WAVE_DURATION;
     this.spawnAcc = 0;
     this.status = "playing";
-
-    const unlocked = ENVIRONMENTS.filter((e) => e.unlockWave <= this.wave);
-    if (unlocked.length) {
-      this.environmentId = pick(unlocked).id;
-    }
+    // Keep the player's chosen environment for the whole run.
 
     if (this.wave % BOSS_EVERY === 0) {
       this.spawnBoss();
@@ -631,7 +630,9 @@ export class GameEngine {
 
       for (let j = this.obstacles.length - 1; j >= 0; j--) {
         const o = this.obstacles[j]!;
+        if (p.hitIds.has(o.id)) continue;
         if (dist(p, o) < o.radius + p.radius) {
+          p.hitIds.add(o.id);
           this.damageObstacle(o, p.power, p.skillId);
           p.pierce -= 1;
           if (p.pierce <= 0) {
@@ -675,7 +676,6 @@ export class GameEngine {
 
     this.elapsed += dt;
     this.invuln = Math.max(0, this.invuln - dt);
-    this.refreshDerivedStats();
 
     this.player.x = clamp(
       this.player.x + this.move.x * this.stats.moveSpeed * dt,

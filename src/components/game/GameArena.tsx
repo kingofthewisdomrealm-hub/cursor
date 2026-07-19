@@ -46,7 +46,7 @@ export function GameArena({ environmentId }: Props) {
   const [showLearn, setShowLearn] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [disciplines, setDisciplines] = useState<DisciplineId[]>(["sales"]);
-  const masteredRef = useRef<string | undefined>(undefined);
+  const masteredRef = useRef<string[]>([]);
 
   const resolveEnv = useCallback(() => {
     const progress = loadProgress();
@@ -67,7 +67,7 @@ export function GameArena({ environmentId }: Props) {
     engineRef.current = engine;
     recordedRef.current = false;
     learnOpenRef.current = false;
-    masteredRef.current = undefined;
+    masteredRef.current = [];
     setShowLearn(false);
 
     const canvas = canvasRef.current;
@@ -181,7 +181,9 @@ export function GameArena({ environmentId }: Props) {
   ) => {
     if (correct && upgradeId) {
       engineRef.current?.applyLearningReward(upgradeId);
-      masteredRef.current = scenarioId;
+      if (scenarioId && !masteredRef.current.includes(scenarioId)) {
+        masteredRef.current = [...masteredRef.current, scenarioId];
+      }
     }
     learnOpenRef.current = false;
     setShowLearn(false);
