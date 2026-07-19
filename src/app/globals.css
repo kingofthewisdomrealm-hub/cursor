@@ -1,42 +1,37 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display), ui-sans-serif, system-ui, sans-serif;
 
-  --color-sand: #f7f3ec;
-  --color-sand-deep: #ebe4d8;
-  --color-ink: #1f2a24;
-  --color-ink-soft: #4a5a52;
-  --color-mist: #d8e3dc;
-  --color-leaf: #3d7a6a;
-  --color-leaf-deep: #2a5a4e;
-  --color-clay: #c4785a;
-
-  --color-vata: #6b8fad;
-  --color-vata-soft: #e4eef5;
-  --color-pitta: #d4845a;
-  --color-pitta-soft: #f7ebe3;
-  --color-kapha: #3d7a6a;
-  --color-kapha-soft: #e2efe9;
+  --color-ink: #070b16;
+  --color-panel: #0d1428;
+  --color-fog: #9aa8c7;
+  --color-neon: #39f3ff;
+  --color-mint: #7dffb3;
+  --color-amber: #ffd166;
+  --color-rose: #ff4d6d;
+  --color-violet-glow: #c77dff;
 }
 
 @layer base {
-  html {
-    scroll-behavior: smooth;
+  html,
+  body {
+    height: 100%;
   }
 
   body {
-    @apply bg-sand text-ink antialiased;
+    @apply bg-ink text-white antialiased;
     background-image:
-      radial-gradient(ellipse 90% 60% at 10% -10%, rgba(107, 143, 173, 0.14), transparent 55%),
-      radial-gradient(ellipse 70% 50% at 100% 0%, rgba(61, 122, 106, 0.12), transparent 50%),
-      radial-gradient(ellipse 60% 40% at 50% 100%, rgba(212, 132, 90, 0.08), transparent 55%);
-    min-height: 100vh;
+      radial-gradient(ellipse 80% 50% at 20% -10%, rgba(57, 243, 255, 0.14), transparent 55%),
+      radial-gradient(ellipse 70% 45% at 90% 10%, rgba(255, 0, 110, 0.12), transparent 50%),
+      radial-gradient(ellipse 60% 40% at 50% 100%, rgba(80, 40, 140, 0.18), transparent 55%),
+      linear-gradient(180deg, #070b16 0%, #0a1224 100%);
+    background-attachment: fixed;
   }
 
   ::selection {
-    background: rgba(61, 122, 106, 0.25);
+    background: rgba(57, 243, 255, 0.35);
   }
 }
 
@@ -45,72 +40,52 @@
     font-family: var(--font-display);
   }
 
-  .animate-fade-up {
-    animation: fadeUp 0.7s ease-out both;
+  .animate-rise {
+    animation: rise 0.45s ease-out both;
   }
 
-  .animate-fade-in {
-    animation: fadeIn 0.5s ease-out both;
+  .animate-pulse-slow {
+    animation: pulseSlow 3.2s ease-in-out infinite;
   }
 
-  .animate-scale-in {
-    animation: scaleIn 0.45s ease-out both;
-  }
-
-  .animate-breathe {
-    animation: breathe 5s ease-in-out infinite;
-  }
-
-  .animate-progress {
-    animation: progressGrow 0.8s ease-out both;
+  .animate-scan {
+    animation: scan 8s linear infinite;
   }
 }
 
-@keyframes fadeUp {
+@keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(16px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.94);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes breathe {
+@keyframes pulseSlow {
   0%,
   100% {
-    transform: scale(1);
-    opacity: 0.85;
+    opacity: 0.55;
   }
   50% {
-    transform: scale(1.04);
     opacity: 1;
   }
 }
 
-@keyframes progressGrow {
-  from {
-    width: 0%;
+@keyframes scan {
+  0% {
+    transform: translateY(-20%);
   }
+  100% {
+    transform: translateY(120%);
+  }
+}
+
+.phaser-host canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain;
 }

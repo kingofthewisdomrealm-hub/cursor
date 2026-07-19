@@ -1,54 +1,58 @@
-# Dosha Yoga
+# Communication Survival
 
-Personalized Ayurvedic yoga app — discover your dosha (Vata, Pitta, Kapha) and receive yoga routines shaped for your constitution and how you feel today.
+Mobile-first zombie survival where **communication skills are your weapon**.
 
-## Features (MVP)
+Survive a wave → answer a realistic communication scenario → earn a combat upgrade → fight harder. Inspired by Vampire Survivors + Duolingo + Z Route.
 
-1. **Landing page** — calm wellness intro with dosha previews  
-2. **Dosha quiz** — 20-question assessment with progress  
-3. **Results dashboard** — percentages, primary/secondary dosha, profile guidance  
-4. **Daily check-in** — sleep, energy, stress, mood, time, desired outcome  
-5. **Routine generator** — tagged pose database + ranking logic  
-6. **Guided practice** — timer, pause/skip, audio cues, feedback  
-7. **Progress tracking** — streak, minutes, mood/imbalance insights  
+## MVP features
 
-## Tech stack
+- One endless dark-city map (Phaser)
+- Six enemy types: Walker, Runner, Tank, Exploder, Spitter, Boss
+- Automatic squad shooting + virtual joystick / WASD
+- XP gems and leveling
+- 50 communication scenarios across modular packs
+- 10 weapon / squad upgrades
+- Explanation screen (why / psychology / application)
+- Score screen with accuracy %
+- Local progression that unlocks new communication packs
 
-- Next.js 15 (App Router) + TypeScript  
-- Tailwind CSS 4  
-- Supabase (optional auth/database)  
-- localStorage demo mode (works offline without keys)
+## Stack
+
+- Next.js 15 + React + TypeScript
+- Phaser 4 (combat engine)
+- Tailwind CSS 4 (menus / overlays)
+- Zustand (run + progression state)
+- Local JSON scenario database
 
 ## Quick start
 
 ```bash
 npm install
-cp .env.example .env.local
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### Demo mode
+## Core loop
 
-Works without API keys. Quiz results, check-ins, routines, and practice history are stored in the browser.
+1. Zombie wave (30–60s)
+2. Combat pauses
+3. Communication challenge
+4. Correct → choose upgrade; incorrect → no upgrade
+5. Next wave
 
-### Optional Supabase
+Learning is progression. Communication is power.
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+## Project layout
+
+```
+src/
+  app/                 # Next.js routes (menu + play)
+  components/          # HUD + challenge / upgrade / score overlays
+  data/                # scenarios.json, upgrades, packs
+  game/                # Phaser scene, textures, audio, config
+  store/               # Zustand game store
+  types/               # Shared types
 ```
 
-Apply `supabase/migrations/001_dosha_yoga.sql` in your Supabase project when ready to persist server-side.
-
-## Disclaimer
-
-Dosha Yoga provides general educational and wellness guidance. It is **not a medical diagnosis** or a substitute for professional healthcare.
-
-## Build
-
-```bash
-npm run build
-npm start
-```
+New learning categories can be added as JSON packs without changing the combat engine.
