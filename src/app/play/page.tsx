@@ -1,64 +1,31 @@
-"use client";
-
-import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect } from "react";
-import { CombatHud } from "@/components/game/CombatHud";
-import { ChallengeOverlay } from "@/components/overlays/ChallengeOverlay";
-import { ExplanationOverlay } from "@/components/overlays/ExplanationOverlay";
-import { ScoreOverlay } from "@/components/overlays/ScoreOverlay";
-import { UpgradeOverlay } from "@/components/overlays/UpgradeOverlay";
-import { useGameStore } from "@/store/gameStore";
-
-const PhaserGame = dynamic(
-  () =>
-    import("@/components/game/PhaserGame").then((m) => m.PhaserGame),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-full w-full items-center justify-center bg-[#070b16] font-display text-sm tracking-wider text-neon">
-        Loading battlefield…
-      </div>
-    ),
-  },
-);
+import { Suspense } from "react";
+import { PlayClient } from "@/components/game/PlayClient";
 
 export default function PlayPage() {
-  const phase = useGameStore((s) => s.phase);
-  const startRun = useGameStore((s) => s.startRun);
-  const setPhase = useGameStore((s) => s.setPhase);
-
-  useEffect(() => {
-    if (phase === "menu" || phase === "score") {
-      // Arriving from menu without startRun already called
-      if (phase === "menu") startRun();
-    }
-  }, [phase, startRun]);
-
   return (
-    <main className="mx-auto flex h-dvh max-w-lg flex-col bg-ink">
-      <header className="flex items-center justify-between px-3 py-2">
-        <Link
-          href="/"
-          onClick={() => setPhase("menu")}
-          className="font-display text-[11px] uppercase tracking-[0.2em] text-fog hover:text-neon"
-        >
-          Exit
+    <div className="play-shell">
+      <header className="play-top">
+        <Link href="/" className="play-brand">
+          Communication <em>Survival</em>
         </Link>
-        <p className="font-display text-[11px] uppercase tracking-[0.22em] text-neon">
-          Communication Survival
-        </p>
-        <span className="w-10" />
+        <Link
+          href="/progress"
+          className="btn btn-ghost"
+          style={{ padding: "0.45rem 0.85rem" }}
+        >
+          Progress
+        </Link>
       </header>
-
-      <div className="relative min-h-0 flex-1 overflow-hidden">
-        <PhaserGame />
-        <CombatHud />
-        <ChallengeOverlay />
-        <ExplanationOverlay />
-        <UpgradeOverlay />
-        <ScoreOverlay />
-      </div>
-    </main>
+      <Suspense
+        fallback={
+          <div className="arena" style={{ display: "grid", placeItems: "center" }}>
+            <p>Entering the room…</p>
+          </div>
+        }
+      >
+        <PlayClient />
+      </Suspense>
+    </div>
   );
 }

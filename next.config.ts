@@ -9,10 +9,6 @@ const nextConfig: NextConfig = {
   assetPrefix: isGithubPages ? "/cursor/" : undefined,
   images: { unoptimized: true },
   trailingSlash: true,
-  webpack: (config) => {
-    config.externals = [...(config.externals ?? []), { canvas: "commonjs canvas" }];
-    return config;
-  },
 };
 
 export default nextConfig;
