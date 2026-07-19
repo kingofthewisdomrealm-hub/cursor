@@ -1,19 +1,34 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { GameHUD } from "@/components/game/GameHUD";
 import { LearningModal } from "@/components/game/LearningModal";
 import { LevelUpModal } from "@/components/game/LevelUpModal";
+import { OnboardingModal } from "@/components/game/OnboardingModal";
 import { VirtualJoystick } from "@/components/game/VirtualJoystick";
 import { ENVIRONMENTS } from "@/data/environments";
 import { GameEngine, type EngineSnapshot } from "@/game/engine";
 import { drawGame } from "@/game/renderer";
 import type { DisciplineId, EnvironmentId, UpgradeId } from "@/game/types";
-import { loadProgress, recordRun } from "@/lib/storage";
+import { loadProgress, markTutorialSeen, recordRun } from "@/lib/storage";
 
 interface Props {
   environmentId?: EnvironmentId;
+}
+
+function cloneSnap(s: EngineSnapshot): EngineSnapshot {
+  return {
+    ...s,
+    obstacles: [...s.obstacles],
+    projectiles: [...s.projectiles],
+    pickups: [...s.pickups],
+    transforms: [...s.transforms],
+    floats: [...s.floats],
+    skills: s.skills.map((sk) => ({ ...sk })),
+    upgrades: s.upgrades.map((u) => ({ ...u })),
+    levelChoices: [...s.levelChoices],
+  };
 }
 
 export function GameArena({ environmentId }: Props) {
@@ -24,23 +39,36 @@ export function GameArena({ environmentId }: Props) {
   const joyRef = useRef({ x: 0, y: 0, active: false });
   const learnOpenRef = useRef(false);
   const recordedRef = useRef(false);
+  const pausedRef = useRef(false);
+  const runKeyRef = useRef(0);
+  const [runKey, setRunKey] = useState(0);
   const [snap, setSnap] = useState<EngineSnapshot | null>(null);
   const [showLearn, setShowLearn] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   const [disciplines, setDisciplines] = useState<DisciplineId[]>(["sales"]);
   const masteredRef = useRef<string | undefined>(undefined);
+
+  const resolveEnv = useCallback(() => {
+    const progress = loadProgress();
+    return environmentId && progress.unlockedEnvironments.includes(environmentId)
+      ? environmentId
+      : (progress.unlockedEnvironments[0] ?? "networking");
+  }, [environmentId]);
 
   useEffect(() => {
     const progress = loadProgress();
     setDisciplines(progress.unlockedDisciplines);
-    const env =
-      environmentId && progress.unlockedEnvironments.includes(environmentId)
-        ? environmentId
-        : (progress.unlockedEnvironments[0] ?? "networking");
+    const needsTutorial = !progress.hasSeenTutorial;
+    setShowTutorial(needsTutorial);
+    pausedRef.current = needsTutorial;
 
+    const env = resolveEnv();
     const engine = new GameEngine(env);
     engineRef.current = engine;
     recordedRef.current = false;
     learnOpenRef.current = false;
+    masteredRef.current = undefined;
+    setShowLearn(false);
 
     const canvas = canvasRef.current;
     const wrap = wrapRef.current;
@@ -49,6 +77,7 @@ export function GameArena({ environmentId }: Props) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    let resizedOnce = false;
     const resize = () => {
       const rect = wrap.getBoundingClientRect();
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -57,7 +86,16 @@ export function GameArena({ environmentId }: Props) {
       canvas.style.width = `${rect.width}px`;
       canvas.style.height = `${rect.height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      engine.resize(rect.width, rect.height);
+      // Only recenter on the first layout; later resizes keep position.
+      if (!resizedOnce) {
+        engine.resize(rect.width, rect.height);
+        resizedOnce = true;
+      } else {
+        engine.width = rect.width;
+        engine.height = rect.height;
+        engine.player.x = Math.min(Math.max(18, engine.player.x), rect.width - 18);
+        engine.player.y = Math.min(Math.max(18, engine.player.y), rect.height - 18);
+      }
     };
     resize();
     window.addEventListener("resize", resize);
@@ -71,36 +109,29 @@ export function GameArena({ environmentId }: Props) {
       last = now;
       time += dt;
 
-      const keys = keysRef.current;
-      let mx = 0;
-      let my = 0;
-      if (keys.has("ArrowLeft") || keys.has("a") || keys.has("A")) mx -= 1;
-      if (keys.has("ArrowRight") || keys.has("d") || keys.has("D")) mx += 1;
-      if (keys.has("ArrowUp") || keys.has("w") || keys.has("W")) my -= 1;
-      if (keys.has("ArrowDown") || keys.has("s") || keys.has("S")) my += 1;
+      if (!pausedRef.current) {
+        const keys = keysRef.current;
+        let mx = 0;
+        let my = 0;
+        if (keys.has("ArrowLeft") || keys.has("a") || keys.has("A")) mx -= 1;
+        if (keys.has("ArrowRight") || keys.has("d") || keys.has("D")) mx += 1;
+        if (keys.has("ArrowUp") || keys.has("w") || keys.has("W")) my -= 1;
+        if (keys.has("ArrowDown") || keys.has("s") || keys.has("S")) my += 1;
 
-      if (joyRef.current.active) {
-        engine.setMove(joyRef.current.x, joyRef.current.y);
-      } else {
-        engine.setMove(mx, my);
+        if (joyRef.current.active) {
+          engine.setMove(joyRef.current.x, joyRef.current.y);
+        } else {
+          engine.setMove(mx, my);
+        }
+
+        engine.update(dt);
       }
 
-      engine.update(dt);
       const s = engine.snapshot();
-      setSnap({
-        ...s,
-        obstacles: [...s.obstacles],
-        projectiles: [...s.projectiles],
-        pickups: [...s.pickups],
-        transforms: [...s.transforms],
-        floats: [...s.floats],
-        skills: s.skills.map((sk) => ({ ...sk })),
-        upgrades: s.upgrades.map((u) => ({ ...u })),
-        levelChoices: [...s.levelChoices],
-      });
+      setSnap(cloneSnap(s));
       drawGame(ctx, s, engine.width, engine.height, time);
 
-      if (s.status === "waveClear" && !learnOpenRef.current) {
+      if (s.status === "waveClear" && !learnOpenRef.current && !pausedRef.current) {
         learnOpenRef.current = true;
         setShowLearn(true);
       }
@@ -124,7 +155,7 @@ export function GameArena({ environmentId }: Props) {
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
     };
-  }, [environmentId]);
+  }, [environmentId, resolveEnv, runKey]);
 
   useEffect(() => {
     if (!snap?.summary) return;
@@ -157,15 +188,29 @@ export function GameArena({ environmentId }: Props) {
     engineRef.current?.beginNextWave();
   };
 
+  const onTutorialDone = () => {
+    markTutorialSeen();
+    setShowTutorial(false);
+    pausedRef.current = false;
+  };
+
+  const playAgain = () => {
+    runKeyRef.current += 1;
+    setRunKey(runKeyRef.current);
+    setSnap(null);
+  };
+
   return (
     <div className="arena" ref={wrapRef}>
       <canvas ref={canvasRef} className="arena-canvas" />
 
       {snap && <GameHUD snap={snap} />}
 
-      <VirtualJoystick onMove={onJoystick} />
+      {!showTutorial && <VirtualJoystick onMove={onJoystick} />}
 
-      {snap?.status === "levelUp" && (
+      {showTutorial && <OnboardingModal onDone={onTutorialDone} />}
+
+      {snap?.status === "levelUp" && !showTutorial && (
         <LevelUpModal
           level={snap.level}
           choices={snap.levelChoices}
@@ -173,7 +218,7 @@ export function GameArena({ environmentId }: Props) {
         />
       )}
 
-      {showLearn && snap && (
+      {showLearn && snap && !showTutorial && (
         <LearningModal
           wave={snap.wave}
           unlockedDisciplines={disciplines}
@@ -182,7 +227,8 @@ export function GameArena({ environmentId }: Props) {
       )}
 
       {(snap?.status === "defeat" || snap?.status === "victory") &&
-        snap.summary && (
+        snap.summary &&
+        !showTutorial && (
           <div className="overlay animate-fade-in">
             <div className="panel animate-scale-in">
               <p className="eyebrow">
@@ -224,11 +270,7 @@ export function GameArena({ environmentId }: Props) {
                 </li>
               </ul>
               <div className="panel-actions">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => window.location.reload()}
-                >
+                <button type="button" className="btn btn-primary" onClick={playAgain}>
                   Play again
                 </button>
                 <Link href="/" className="btn btn-ghost">

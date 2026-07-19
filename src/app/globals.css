@@ -702,6 +702,35 @@
   gap: 0.65rem;
 }
 
+.panel-onboard .panel-actions {
+  justify-content: flex-end;
+}
+
+.onboard-visual {
+  margin: 0.75rem 0 0.35rem;
+  font-size: 2.4rem;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+}
+
+.onboard-dots {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0 0 1.1rem;
+}
+
+.onboard-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: rgba(245, 240, 232, 0.2);
+}
+
+.onboard-dot.is-active {
+  background: var(--color-teal);
+  width: 1.1rem;
+}
+
 /* Progress / select */
 .page {
   max-width: 40rem;

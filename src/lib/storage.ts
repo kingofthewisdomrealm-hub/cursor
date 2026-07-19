@@ -12,6 +12,7 @@ export interface ProgressState {
   masteredScenarios: string[];
   lastRun: RunSummary | null;
   playerLevel: number;
+  hasSeenTutorial: boolean;
 }
 
 const DEFAULT: ProgressState = {
@@ -24,7 +25,16 @@ const DEFAULT: ProgressState = {
   masteredScenarios: [],
   lastRun: null,
   playerLevel: 1,
+  hasSeenTutorial: false,
 };
+
+export function markTutorialSeen() {
+  const prev = loadProgress();
+  if (prev.hasSeenTutorial) return prev;
+  const next = { ...prev, hasSeenTutorial: true };
+  saveProgress(next);
+  return next;
+}
 
 function canUseStorage() {
   return typeof window !== "undefined" && !!window.localStorage;
@@ -86,6 +96,7 @@ export function recordRun(summary: RunSummary, masteredScenarioId?: string) {
     masteredScenarios: [...mastered],
     lastRun: summary,
     playerLevel,
+    hasSeenTutorial: prev.hasSeenTutorial,
   };
   saveProgress(next);
   return next;
