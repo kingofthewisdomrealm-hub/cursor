@@ -1,8 +1,16 @@
+import { Fraunces } from "next/font/google";
 import Link from "next/link";
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  weight: ["500", "700"],
+  variable: "--font-fraunces",
+  display: "swap",
+});
 
 export default function HomePage() {
   return (
-    <main className="landing">
+    <main className={`landing ${fraunces.variable}`}>
       <section className="landing-hero">
         <div className="landing-visual" aria-hidden>
           <div className="landing-bubbles">
@@ -21,7 +29,7 @@ export default function HomePage() {
             Survive waves of conversations. Transform objections into alliance.
           </p>
           <div className="cta-row">
-            <Link href="/play" className="btn btn-primary">
+            <Link href="/play" className="btn btn-primary" prefetch>
               Enter the room
             </Link>
             <Link href="/progress" className="btn btn-ghost">

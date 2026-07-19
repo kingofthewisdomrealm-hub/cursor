@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 
 interface Props {
   onMove: (x: number, y: number) => void;
@@ -8,8 +8,13 @@ interface Props {
 
 export function VirtualJoystick({ onMove }: Props) {
   const baseRef = useRef<HTMLDivElement>(null);
-  const [knob, setKnob] = useState({ x: 0, y: 0 });
-  const [active, setActive] = useState(false);
+  const knobRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef(false);
+
+  const setKnobTransform = (x: number, y: number) => {
+    const knob = knobRef.current;
+    if (knob) knob.style.transform = `translate(${x}px, ${y}px)`;
+  };
 
   const updateFromPoint = (clientX: number, clientY: number) => {
     const el = baseRef.current;
@@ -25,13 +30,14 @@ export function VirtualJoystick({ onMove }: Props) {
       dx = (dx / len) * max;
       dy = (dy / len) * max;
     }
-    setKnob({ x: dx, y: dy });
+    setKnobTransform(dx, dy);
     onMove(dx / max, dy / max);
   };
 
   const end = () => {
-    setActive(false);
-    setKnob({ x: 0, y: 0 });
+    activeRef.current = false;
+    knobRef.current?.classList.remove("is-active");
+    setKnobTransform(0, 0);
     onMove(0, 0);
   };
 
@@ -41,11 +47,12 @@ export function VirtualJoystick({ onMove }: Props) {
       className="joystick"
       onPointerDown={(e) => {
         e.currentTarget.setPointerCapture(e.pointerId);
-        setActive(true);
+        activeRef.current = true;
+        knobRef.current?.classList.add("is-active");
         updateFromPoint(e.clientX, e.clientY);
       }}
       onPointerMove={(e) => {
-        if (!active && !(e.buttons & 1)) return;
+        if (!activeRef.current) return;
         updateFromPoint(e.clientX, e.clientY);
       }}
       onPointerUp={end}
@@ -53,10 +60,7 @@ export function VirtualJoystick({ onMove }: Props) {
       role="presentation"
       aria-hidden
     >
-      <div
-        className={`joystick-knob ${active ? "is-active" : ""}`}
-        style={{ transform: `translate(${knob.x}px, ${knob.y}px)` }}
-      />
+      <div ref={knobRef} className="joystick-knob" />
     </div>
   );
 }

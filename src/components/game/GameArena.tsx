@@ -9,7 +9,7 @@ import { OnboardingModal } from "@/components/game/OnboardingModal";
 import { VirtualJoystick } from "@/components/game/VirtualJoystick";
 import { ENVIRONMENTS } from "@/data/environments";
 import { GameEngine, type EngineSnapshot } from "@/game/engine";
-import { drawGame } from "@/game/renderer";
+import { drawGame, invalidateRendererCaches } from "@/game/renderer";
 import type { DisciplineId, EnvironmentId, UpgradeId } from "@/game/types";
 import { loadProgress, markTutorialSeen, recordRun } from "@/lib/storage";
 
@@ -84,6 +84,7 @@ export function GameArena({ environmentId }: Props) {
       canvas.style.width = `${rect.width}px`;
       canvas.style.height = `${rect.height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      invalidateRendererCaches();
       // Only recenter on the first layout; later resizes keep position.
       if (!resizedOnce) {
         engine.resize(rect.width, rect.height);
@@ -104,29 +105,39 @@ export function GameArena({ environmentId }: Props) {
     let hudAcc = 0;
     let lastStatus = "";
     let lastSkillSig = "";
+    let running = true;
 
-    const loop = (now: number) => {
+    const paint = (now: number) => {
       const dt = Math.min(0.033, (now - last) / 1000);
       last = now;
+
+      // Tutorial / full pause: no sim, no canvas churn
+      if (pausedRef.current) {
+        hudAcc += dt;
+        if (hudAcc >= 0.5) {
+          hudAcc = 0;
+          setSnap(cloneSnap(engine.snapshot()));
+        }
+        return;
+      }
+
       time += dt;
 
-      if (!pausedRef.current) {
-        const keys = keysRef.current;
-        let mx = 0;
-        let my = 0;
-        if (keys.has("ArrowLeft") || keys.has("a") || keys.has("A")) mx -= 1;
-        if (keys.has("ArrowRight") || keys.has("d") || keys.has("D")) mx += 1;
-        if (keys.has("ArrowUp") || keys.has("w") || keys.has("W")) my -= 1;
-        if (keys.has("ArrowDown") || keys.has("s") || keys.has("S")) my += 1;
+      const keys = keysRef.current;
+      let mx = 0;
+      let my = 0;
+      if (keys.has("ArrowLeft") || keys.has("a") || keys.has("A")) mx -= 1;
+      if (keys.has("ArrowRight") || keys.has("d") || keys.has("D")) mx += 1;
+      if (keys.has("ArrowUp") || keys.has("w") || keys.has("W")) my -= 1;
+      if (keys.has("ArrowDown") || keys.has("s") || keys.has("S")) my += 1;
 
-        if (joyRef.current.active) {
-          engine.setMove(joyRef.current.x, joyRef.current.y);
-        } else {
-          engine.setMove(mx, my);
-        }
-
-        engine.update(dt);
+      if (joyRef.current.active) {
+        engine.setMove(joyRef.current.x, joyRef.current.y);
+      } else {
+        engine.setMove(mx, my);
       }
+
+      engine.update(dt);
 
       const s = engine.snapshot();
       drawGame(ctx, s, engine.width, engine.height, time);
@@ -150,13 +161,36 @@ export function GameArena({ environmentId }: Props) {
         setSnap(cloneSnap(s));
       }
 
-      if (s.status === "waveClear" && !learnOpenRef.current && !pausedRef.current) {
+      if (s.status === "waveClear" && !learnOpenRef.current) {
         learnOpenRef.current = true;
         setShowLearn(true);
       }
+    };
 
+    const loop = (now: number) => {
+      if (!running) return;
+      if (document.hidden) {
+        raf = 0;
+        return;
+      }
+      paint(now);
       raf = requestAnimationFrame(loop);
     };
+
+    const onVisibility = () => {
+      if (document.hidden) {
+        if (raf) cancelAnimationFrame(raf);
+        raf = 0;
+        engine.setMove(0, 0);
+        return;
+      }
+      last = performance.now();
+      if (!raf && running) raf = requestAnimationFrame(loop);
+    };
+
+    // Initial paint (covers tutorial-paused canvas under the modal)
+    drawGame(ctx, engine.snapshot(), engine.width, engine.height, 0);
+    setSnap(cloneSnap(engine.snapshot()));
     raf = requestAnimationFrame(loop);
 
     const down = (e: KeyboardEvent) => {
@@ -167,12 +201,15 @@ export function GameArena({ environmentId }: Props) {
     };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
+    document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
+      running = false;
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [environmentId, resolveEnv, runKey]);
 
@@ -213,6 +250,14 @@ export function GameArena({ environmentId }: Props) {
     markTutorialSeen();
     setShowTutorial(false);
     pausedRef.current = false;
+    // Kick the canvas immediately so the room appears under the dismissed modal.
+    const engine = engineRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (engine && ctx) {
+      drawGame(ctx, engine.snapshot(), engine.width, engine.height, 0);
+      setSnap(cloneSnap(engine.snapshot()));
+    }
   };
 
   const playAgain = () => {

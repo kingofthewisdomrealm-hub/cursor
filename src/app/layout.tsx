@@ -1,15 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Outfit } from "next/font/google";
+import { Outfit } from "next/font/google";
 import "./globals.css";
 
 const outfit = Outfit({
   subsets: ["latin"],
+  weight: ["400", "600", "700"],
   variable: "--font-outfit",
-});
-
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-fraunces",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -33,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${outfit.variable} ${fraunces.variable}`}>
+    <html lang="en" className={outfit.variable}>
       <body className="font-sans">{children}</body>
     </html>
   );
