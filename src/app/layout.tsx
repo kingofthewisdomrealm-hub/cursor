@@ -1,34 +1,27 @@
 import type { Metadata, Viewport } from "next";
-import { Orbitron, Space_Grotesk } from "next/font/google";
+import { Outfit } from "next/font/google";
 import "./globals.css";
 
-const display = Orbitron({
+const outfit = Outfit({
   subsets: ["latin"],
-  variable: "--font-display",
-});
-
-const body = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-body",
+  weight: ["400", "600", "700"],
+  variable: "--font-outfit",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Communication Survival",
+  title: "Communication Survival — Survive the Conversation",
   description:
-    "Zombie survival where every combat upgrade is earned by making the right communication decision.",
-  appleWebApp: {
-    capable: true,
-    title: "Comm Survival",
-    statusBarStyle: "black-translucent",
-  },
+    "A mobile-first survival game where communication obstacles replace monsters. Unlock skills, transform interactions, and grow real influence.",
+  applicationName: "Communication Survival",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false,
-  themeColor: "#070b16",
+  themeColor: "#0b1420",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -37,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable}`}>
+    <html lang="en" className={outfit.variable}>
       <body className="font-sans">{children}</body>
     </html>
   );

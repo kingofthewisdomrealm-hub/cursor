@@ -1,30 +1,16 @@
 # Communication Survival
 
-Mobile-first zombie survival where **communication skills are your weapon**.
+A mobile-first survival game where you survive waves of conversations—not monsters.
 
-Survive a wave → answer a realistic communication scenario → earn a combat upgrade → fight harder. Inspired by Vampire Survivors + Duolingo + Z Route.
+Every enemy is a communication obstacle. Every weapon is a communication skill. Transform angry customers, objections, skeptics, and self-doubt into understanding, engagement, and clarity.
 
-## MVP features
+## Play now
 
-- One endless dark-city map (Phaser)
-- Six enemy types: Walker, Runner, Tank, Exploder, Spitter, Boss
-- Automatic squad shooting + virtual joystick / WASD
-- XP gems and leveling
-- 50 communication scenarios across modular packs
-- 10 weapon / squad upgrades
-- Explanation screen (why / psychology / application)
-- Score screen with accuracy %
-- Local progression that unlocks new communication packs
+Permanent share link (GitHub Pages):
 
-## Stack
+**https://kingofthewisdomrealm-hub.github.io/cursor/**
 
-- Next.js 15 + React + TypeScript
-- Phaser 4 (combat engine)
-- Tailwind CSS 4 (menus / overlays)
-- Zustand (run + progression state)
-- Local JSON scenario database
-
-## Quick start
+Local:
 
 ```bash
 npm install
@@ -33,26 +19,35 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Core loop
+- Mobile: drag the on-screen joystick
+- Desktop: WASD or arrow keys
 
-1. Zombie wave (30–60s)
-2. Combat pauses
-3. Communication challenge
-4. Correct → choose upgrade; incorrect → no upgrade
-5. Next wave
+## Play loop
 
-Learning is progression. Communication is power.
+1. Enter a social environment (networking event, sales floor, stage, and more)
+2. Obstacles approach from all directions
+3. Unlocked skills auto-respond to nearby challenges
+4. Collect **Confidence** (XP) and level up
+5. Choose a new technique or upgrade
+6. Between waves, pick the best real-world response to unlock bonuses
+7. Face high-pressure boss conversations
 
-## Project layout
+## Stack
 
+- Next.js 15 (App Router) + TypeScript
+- Canvas game engine (Vampire Survivors–style arena)
+- Tailwind CSS 4
+- localStorage progression (no backend required)
+
+## Build
+
+```bash
+npm run build
+npm start
 ```
-src/
-  app/                 # Next.js routes (menu + play)
-  components/          # HUD + challenge / upgrade / score overlays
-  data/                # scenarios.json, upgrades, packs
-  game/                # Phaser scene, textures, audio, config
-  store/               # Zustand game store
-  types/               # Shared types
-```
 
-New learning categories can be added as JSON packs without changing the combat engine.
+Static export for GitHub Pages uses `GITHUB_PAGES=true` (see `.github/workflows/deploy.yml`).
+
+## Why this version
+
+This branch continues the conversation-arena rebuild from earlier agent history: transform obstacles (not zombie combat), custom canvas engine, disciplines/environments, first-run onboarding tuned for the first 30 seconds, and mobile performance work.
