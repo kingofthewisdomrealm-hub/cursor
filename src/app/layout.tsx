@@ -13,15 +13,18 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Dosha Yoga — Personalized Ayurvedic Yoga",
+  title: "Communication Survival — Survive the Conversation",
   description:
-    "Discover your Ayurvedic dosha and receive a yoga routine designed for your body, energy, stress patterns, and current condition.",
+    "A mobile-first survival game where communication obstacles replace monsters. Unlock skills, transform interactions, and grow real influence.",
+  applicationName: "Communication Survival",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#f7f3ec",
+  maximumScale: 1,
+  themeColor: "#0b1420",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

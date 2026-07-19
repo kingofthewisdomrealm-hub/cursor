@@ -1,137 +1,92 @@
-import type {
-  AppState,
-  DailyCheckIn,
-  DoshaResult,
-  PracticeResult,
-  QuizAnswer,
-  User,
-  YogaRoutine,
-} from "@/types";
+import type { DisciplineId, EnvironmentId, RunSummary } from "@/game/types";
 
-const STORAGE_KEY = "dosha-yoga-state-v1";
+const KEY = "communication-survival-progress-v1";
 
-export const defaultUser = (): User => ({
-  id: "demo-user",
-  name: "Guest",
-  email: "",
-  experienceLevel: "beginner",
-  primaryDosha: null,
-  secondaryDosha: null,
-  vataPercentage: 0,
-  pittaPercentage: 0,
-  kaphaPercentage: 0,
-  physicalLimitations: [],
-  preferredRoutineLength: 20,
-  createdAt: new Date().toISOString(),
-});
+export interface ProgressState {
+  bestConfidence: number;
+  bestWave: number;
+  totalTransformed: number;
+  runs: number;
+  unlockedDisciplines: DisciplineId[];
+  unlockedEnvironments: EnvironmentId[];
+  masteredScenarios: string[];
+  lastRun: RunSummary | null;
+  playerLevel: number;
+}
 
-export const emptyState = (): AppState => ({
-  user: null,
-  quizAnswers: [],
-  doshaResult: null,
-  checkIns: [],
-  currentCheckIn: null,
-  routines: [],
-  currentRoutine: null,
-  practiceResults: [],
-});
+const DEFAULT: ProgressState = {
+  bestConfidence: 0,
+  bestWave: 0,
+  totalTransformed: 0,
+  runs: 0,
+  unlockedDisciplines: ["sales"],
+  unlockedEnvironments: ["networking", "salesFloor"],
+  masteredScenarios: [],
+  lastRun: null,
+  playerLevel: 1,
+};
 
-export function loadState(): AppState {
-  if (typeof window === "undefined") return emptyState();
+function canUseStorage() {
+  return typeof window !== "undefined" && !!window.localStorage;
+}
+
+export function loadProgress(): ProgressState {
+  if (!canUseStorage()) return { ...DEFAULT };
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return emptyState();
-    return { ...emptyState(), ...JSON.parse(raw) } as AppState;
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return { ...DEFAULT };
+    return { ...DEFAULT, ...JSON.parse(raw) };
   } catch {
-    return emptyState();
+    return { ...DEFAULT };
   }
 }
 
-export function saveState(state: AppState): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+export function saveProgress(state: ProgressState) {
+  if (!canUseStorage()) return;
+  localStorage.setItem(KEY, JSON.stringify(state));
 }
 
-export function saveQuizResult(
-  answers: QuizAnswer[],
-  result: DoshaResult,
-  experienceLevel: User["experienceLevel"] = "beginner"
-): AppState {
-  const state = loadState();
-  const user: User = {
-    ...(state.user ?? defaultUser()),
-    experienceLevel,
-    primaryDosha: result.primary,
-    secondaryDosha: result.secondary,
-    vataPercentage: result.percentages.vata,
-    pittaPercentage: result.percentages.pitta,
-    kaphaPercentage: result.percentages.kapha,
+export function recordRun(summary: RunSummary, masteredScenarioId?: string) {
+  const prev = loadProgress();
+  const unlockedDisciplines = new Set(prev.unlockedDisciplines);
+  const unlockedEnvironments = new Set(prev.unlockedEnvironments);
+
+  // Unlock by meta player level / wave reached
+  const playerLevel = Math.max(prev.playerLevel, summary.level);
+  if (summary.wave >= 2) unlockedDisciplines.add("customerService");
+  if (summary.wave >= 3) unlockedDisciplines.add("negotiation");
+  if (summary.wave >= 4) unlockedDisciplines.add("publicSpeaking");
+  if (summary.wave >= 5) unlockedDisciplines.add("leadership");
+  if (summary.wave >= 6) unlockedDisciplines.add("conflictResolution");
+  if (summary.wave >= 7) unlockedDisciplines.add("management");
+  if (summary.wave >= 8) unlockedDisciplines.add("coaching");
+  if (summary.wave >= 9) unlockedDisciplines.add("consulting");
+  if (summary.wave >= 10) unlockedDisciplines.add("dating");
+
+  unlockedEnvironments.add(summary.environment);
+  if (summary.wave >= 2) unlockedEnvironments.add("coffeeShop");
+  if (summary.wave >= 3) unlockedEnvironments.add("jobInterview");
+  if (summary.wave >= 4) unlockedEnvironments.add("podcast");
+  if (summary.wave >= 5) unlockedEnvironments.add("familyDinner");
+  if (summary.wave >= 6) unlockedEnvironments.add("conference");
+  if (summary.wave >= 7) unlockedEnvironments.add("negotiationRoom");
+  if (summary.wave >= 8) unlockedEnvironments.add("stage");
+  if (summary.wave >= 9) unlockedEnvironments.add("tradeShow");
+
+  const mastered = new Set(prev.masteredScenarios);
+  if (masteredScenarioId) mastered.add(masteredScenarioId);
+
+  const next: ProgressState = {
+    bestConfidence: Math.max(prev.bestConfidence, summary.confidence),
+    bestWave: Math.max(prev.bestWave, summary.wave),
+    totalTransformed: prev.totalTransformed + summary.transformed,
+    runs: prev.runs + 1,
+    unlockedDisciplines: [...unlockedDisciplines],
+    unlockedEnvironments: [...unlockedEnvironments],
+    masteredScenarios: [...mastered],
+    lastRun: summary,
+    playerLevel,
   };
-  const next = {
-    ...state,
-    user,
-    quizAnswers: answers,
-    doshaResult: result,
-  };
-  saveState(next);
+  saveProgress(next);
   return next;
-}
-
-export function saveCheckIn(checkIn: DailyCheckIn): AppState {
-  const state = loadState();
-  const next = {
-    ...state,
-    currentCheckIn: checkIn,
-    checkIns: [checkIn, ...state.checkIns.filter((c) => c.date !== checkIn.date)],
-  };
-  saveState(next);
-  return next;
-}
-
-export function saveRoutine(routine: YogaRoutine): AppState {
-  const state = loadState();
-  const next = {
-    ...state,
-    currentRoutine: routine,
-    routines: [routine, ...state.routines.filter((r) => r.id !== routine.id)],
-  };
-  saveState(next);
-  return next;
-}
-
-export function markRoutineCompleted(routineId: string): AppState {
-  const state = loadState();
-  const routines = state.routines.map((r) =>
-    r.id === routineId ? { ...r, completed: true } : r
-  );
-  const currentRoutine =
-    state.currentRoutine?.id === routineId
-      ? { ...state.currentRoutine, completed: true }
-      : state.currentRoutine;
-  const next = { ...state, routines, currentRoutine };
-  saveState(next);
-  return next;
-}
-
-export function savePracticeResult(result: PracticeResult): AppState {
-  const state = markRoutineCompleted(result.routineId);
-  const next = {
-    ...state,
-    practiceResults: [result, ...state.practiceResults],
-  };
-  saveState(next);
-  return next;
-}
-
-export function updateUser(partial: Partial<User>): AppState {
-  const state = loadState();
-  const user = { ...(state.user ?? defaultUser()), ...partial };
-  const next = { ...state, user };
-  saveState(next);
-  return next;
-}
-
-export function clearAllData(): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(STORAGE_KEY);
 }
