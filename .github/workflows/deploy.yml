@@ -1,9 +1,5 @@
 name: Deploy to GitHub Pages
 
-# Note: Outcome Agent requires Next.js server/API routes for full functionality.
-# For production, deploy to Vercel, Railway, or similar Node hosting.
-# This workflow validates the production build only.
-
 on:
   workflow_dispatch:
   push:
@@ -11,10 +7,12 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
+  pages: write
+  id-token: write
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -29,5 +27,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
+      - name: Build static site
         run: npm run build
+        env:
+          GITHUB_PAGES: "true"
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./out
+          force_orphan: true
