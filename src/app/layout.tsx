@@ -1,27 +1,34 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Outfit } from "next/font/google";
+import { Orbitron, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
-const outfit = Outfit({
+const display = Orbitron({
   subsets: ["latin"],
-  variable: "--font-outfit",
+  variable: "--font-display",
 });
 
-const fraunces = Fraunces({
+const body = Space_Grotesk({
   subsets: ["latin"],
-  variable: "--font-fraunces",
+  variable: "--font-body",
 });
 
 export const metadata: Metadata = {
-  title: "Dosha Yoga — Personalized Ayurvedic Yoga",
+  title: "Communication Survival",
   description:
-    "Discover your Ayurvedic dosha and receive a yoga routine designed for your body, energy, stress patterns, and current condition.",
+    "Zombie survival where every combat upgrade is earned by making the right communication decision.",
+  appleWebApp: {
+    capable: true,
+    title: "Comm Survival",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#f7f3ec",
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#070b16",
 };
 
 export default function RootLayout({
@@ -30,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${outfit.variable} ${fraunces.variable}`}>
+    <html lang="en" className={`${display.variable} ${body.variable}`}>
       <body className="font-sans">{children}</body>
     </html>
   );

@@ -1,0 +1,752 @@
+[
+  {
+    "id": "cs_01",
+    "packId": "customer_service",
+    "speaker": "Customer",
+    "prompt": "Your service is too expensive.",
+    "options": [
+      { "id": "a", "text": "I understand. Price is important. Can I ask what you’re comparing us to?" },
+      { "id": "b", "text": "Actually we’re cheaper than everyone." },
+      { "id": "c", "text": "That’s not true." }
+    ],
+    "correctOptionId": "a",
+    "why": "You validate the concern, then gather comparison context before defending price.",
+    "psychology": "People lower resistance when they feel heard before being persuaded.",
+    "application": "In pricing objections, ask for the alternative they are weighing."
+  },
+  {
+    "id": "cs_02",
+    "packId": "customer_service",
+    "speaker": "Customer",
+    "prompt": "I’ve been on hold for twenty minutes!",
+    "options": [
+      { "id": "a", "text": "Our system is busy today." },
+      { "id": "b", "text": "I’m sorry for the wait. Thank you for staying—how can I help right now?" },
+      { "id": "c", "text": "That’s normal during peak hours." }
+    ],
+    "correctOptionId": "b",
+    "why": "Apology plus gratitude plus forward action rebuilds trust fast.",
+    "psychology": "Acknowledgment reduces anger; a clear next step restores control.",
+    "application": "Lead with empathy, then move straight into problem-solving."
+  },
+  {
+    "id": "cs_03",
+    "packId": "customer_service",
+    "speaker": "Customer",
+    "prompt": "This isn’t what I ordered.",
+    "options": [
+      { "id": "a", "text": "Are you sure you ordered the right thing?" },
+      { "id": "b", "text": "That’s frustrating. Let’s fix it—can you confirm the order number?" },
+      { "id": "c", "text": "Returns take 14 days." }
+    ],
+    "correctOptionId": "b",
+    "why": "You own the emotion and request only the data needed to resolve it.",
+    "psychology": "Blame triggers defensiveness; ownership invites cooperation.",
+    "application": "Name the frustration, then ask one precise clarifying question."
+  },
+  {
+    "id": "cs_04",
+    "packId": "customer_service",
+    "speaker": "Customer",
+    "prompt": "I want a full refund immediately.",
+    "options": [
+      { "id": "a", "text": "No refunds after 7 days." },
+      { "id": "b", "text": "I can help. Let me review your case and explain the fastest options." },
+      { "id": "c", "text": "You’ll have to email corporate." }
+    ],
+    "correctOptionId": "b",
+    "why": "You stay helpful while setting a process instead of a hard no.",
+    "psychology": "Autonomy and clarity calm people more than rigid policy talk.",
+    "application": "Offer a path and timeline before quoting restrictions."
+  },
+  {
+    "id": "cs_05",
+    "packId": "customer_service",
+    "speaker": "Customer",
+    "prompt": "Your app keeps crashing.",
+    "options": [
+      { "id": "a", "text": "Works fine on my phone." },
+      { "id": "b", "text": "Have you tried turning it off and on?" },
+      { "id": "c", "text": "Sorry about that. Which device and when did it last crash?" }
+    ],
+    "correctOptionId": "c",
+    "why": "Empathy plus diagnostic detail gets you to a real fix faster.",
+    "psychology": "Being believed matters as much as the technical answer.",
+    "application": "Collect device, timing, and steps before suggesting fixes."
+  },
+  {
+    "id": "cs_06",
+    "packId": "customer_service",
+    "speaker": "Customer",
+    "prompt": "I already explained this to three people.",
+    "options": [
+      { "id": "a", "text": "I have your notes here. Let me summarize what I see, then we’ll finish this." },
+      { "id": "b", "text": "Please start from the beginning." },
+      { "id": "c", "text": "That’s not my department." }
+    ],
+    "correctOptionId": "a",
+    "why": "Showing continuity proves respect for their time and prior effort.",
+    "psychology": "Repeated storytelling fuels resentment; recognition reduces it.",
+    "application": "Recap known facts before asking anything new."
+  },
+  {
+    "id": "cs_07",
+    "packId": "customer_service",
+    "speaker": "Customer",
+    "prompt": "Can you just make an exception?",
+    "options": [
+      { "id": "a", "text": "Rules are rules." },
+      { "id": "b", "text": "I can’t break policy, but I can find the closest option that still helps." },
+      { "id": "c", "text": "Sure, whatever you want." }
+    ],
+    "correctOptionId": "b",
+    "why": "Boundaries stay firm while creativity keeps goodwill intact.",
+    "psychology": "People accept no better when paired with a real alternative.",
+    "application": "Refuse the ask, offer the next-best workable path."
+  },
+  {
+    "id": "cs_08",
+    "packId": "customer_service",
+    "speaker": "Customer",
+    "prompt": "I’m switching to your competitor.",
+    "options": [
+      { "id": "a", "text": "Fine, good luck." },
+      { "id": "b", "text": "They’re worse anyway." },
+      { "id": "c", "text": "I’d hate to lose you. What’s the main thing we haven’t solved yet?" }
+    ],
+    "correctOptionId": "c",
+    "why": "Curiosity turns an exit threat into actionable feedback.",
+    "psychology": "Exit talk often masks one unmet need worth solving.",
+    "application": "Ask for the decisive issue before accepting churn."
+  },
+  {
+    "id": "cs_09",
+    "packId": "customer_service",
+    "speaker": "Customer",
+    "prompt": "Your team never follows up.",
+    "options": [
+      { "id": "a", "text": "That’s surprising to hear." },
+      { "id": "b", "text": "You’re right to expect updates. I’ll own the next checkpoint and time." },
+      { "id": "c", "text": "Maybe you missed our email." }
+    ],
+    "correctOptionId": "b",
+    "why": "Ownership and a concrete next step repair reliability.",
+    "psychology": "Accountability restores trust faster than explanations.",
+    "application": "State who will do what by when."
+  },
+  {
+    "id": "cs_10",
+    "packId": "customer_service",
+    "speaker": "Customer",
+    "prompt": "This charge looks wrong.",
+    "options": [
+      { "id": "a", "text": "Let’s review the invoice line by line together." },
+      { "id": "b", "text": "Billing is automatic." },
+      { "id": "c", "text": "Everyone pays that fee." }
+    ],
+    "correctOptionId": "a",
+    "why": "Joint review signals transparency and invites shared discovery.",
+    "psychology": "Suspicion drops when the process becomes visible.",
+    "application": "Walk through charges with the customer, not at them."
+  },
+  {
+    "id": "cs_11",
+    "packId": "customer_service",
+    "speaker": "Customer",
+    "prompt": "I need this fixed today.",
+    "options": [
+      { "id": "a", "text": "No promises." },
+      { "id": "b", "text": "I’ll prioritize it. Here’s what I can commit to before end of day." },
+      { "id": "c", "text": "Get in line." }
+    ],
+    "correctOptionId": "b",
+    "why": "Urgency is met with a specific, honest commitment.",
+    "psychology": "Clear expectations beat vague reassurance.",
+    "application": "State the deliverable and the clock, then deliver."
+  },
+  {
+    "id": "cs_12",
+    "packId": "customer_service",
+    "speaker": "Customer",
+    "prompt": "Why should I stay with you?",
+    "options": [
+      { "id": "a", "text": "Because we’re the best." },
+      { "id": "b", "text": "Leaving is a mistake." },
+      { "id": "c", "text": "Based on your goals, here’s the value we uniquely deliver—and a plan to improve." }
+    ],
+    "correctOptionId": "c",
+    "why": "Value is tied to their goals plus a recovery plan.",
+    "psychology": "Self-interest beats brand slogans in retention talks.",
+    "application": "Mirror their outcomes, then show the next win."
+  },
+  {
+    "id": "cs_13",
+    "packId": "customer_service",
+    "speaker": "Customer",
+    "prompt": "Your support chat feels robotic.",
+    "options": [
+      { "id": "a", "text": "I’m a real person here. Tell me what felt off so I can help better." },
+      { "id": "b", "text": "That’s just how the system works." },
+      { "id": "c", "text": "Sorry you feel that way." }
+    ],
+    "correctOptionId": "a",
+    "why": "Human presence plus invitation to feedback re-humanizes the channel.",
+    "psychology": "People soften when they feel treated as individuals.",
+    "application": "Signal humanity, then ask what would feel more helpful."
+  },
+  {
+    "id": "cs_14",
+    "packId": "customer_service",
+    "speaker": "Customer",
+    "prompt": "Can you escalate this?",
+    "options": [
+      { "id": "a", "text": "I can escalate. First I’ll capture the issue so the next person has full context." },
+      { "id": "b", "text": "Escalation won’t help." },
+      { "id": "c", "text": "You’ll wait longer if you escalate." }
+    ],
+    "correctOptionId": "a",
+    "why": "You honor the request while improving handoff quality.",
+    "psychology": "Feeling stuck drives escalation; competence restores confidence.",
+    "application": "Agree to escalate and package a clean summary."
+  },
+  {
+    "id": "cs_15",
+    "packId": "customer_service",
+    "speaker": "Customer",
+    "prompt": "I don’t trust your company anymore.",
+    "options": [
+      { "id": "a", "text": "That’s dramatic." },
+      { "id": "b", "text": "Trust takes time to rebuild. What would a trustworthy next step look like to you?" },
+      { "id": "c", "text": "We have great reviews." }
+    ],
+    "correctOptionId": "b",
+    "why": "You accept the breach and co-define repair.",
+    "psychology": "Trust returns through consistent small proofs, not claims.",
+    "application": "Ask them to define the proof they need next."
+  },
+  {
+    "id": "cs_16",
+    "packId": "customer_service",
+    "speaker": "Customer",
+    "prompt": "Your product is confusing.",
+    "options": [
+      { "id": "a", "text": "Most users figure it out." },
+      { "id": "b", "text": "Which part feels unclear? I’ll walk you through the fastest path." },
+      { "id": "c", "text": "Read the docs." }
+    ],
+    "correctOptionId": "b",
+    "why": "You localize the friction and offer guided help.",
+    "psychology": "Confusion is vulnerability; guidance restores competence.",
+    "application": "Ask where they got stuck, then demo the short path."
+  },
+  {
+    "id": "cs_17",
+    "packId": "customer_service",
+    "speaker": "Customer",
+    "prompt": "I’m not happy with the outcome.",
+    "options": [
+      { "id": "a", "text": "Understood. What outcome were you hoping for?" },
+      { "id": "b", "text": "We did everything we could." },
+      { "id": "c", "text": "That’s life." }
+    ],
+    "correctOptionId": "a",
+    "why": "You explore the gap between expectation and result.",
+    "psychology": "Unspoken expectations fuel disappointment.",
+    "application": "Clarify the desired end state before defending process."
+  },
+  {
+    "id": "cs_18",
+    "packId": "customer_service",
+    "speaker": "Customer",
+    "prompt": "Do you even care?",
+    "options": [
+      { "id": "a", "text": "Of course we care—our NPS is high." },
+      { "id": "b", "text": "Yes. Caring looks like fixing this with you. What’s the priority?" },
+      { "id": "c", "text": "Don’t take it personally." }
+    ],
+    "correctOptionId": "b",
+    "why": "Care is shown through action, not slogans.",
+    "psychology": "Abstract claims fail; concrete help proves intent.",
+    "application": "Translate empathy into a prioritized next action."
+  },
+  {
+    "id": "cs_19",
+    "packId": "customer_service",
+    "speaker": "Customer",
+    "prompt": "I was promised something different.",
+    "options": [
+      { "id": "a", "text": "Sales always overpromises." },
+      { "id": "b", "text": "Let’s compare what was promised with what you have, then close the gap." },
+      { "id": "c", "text": "Check the fine print." }
+    ],
+    "correctOptionId": "b",
+    "why": "You treat the promise as data and aim to reconcile it.",
+    "psychology": "Broken expectations demand repair, not deflection.",
+    "application": "Align promise vs delivery, then propose a make-good."
+  },
+  {
+    "id": "cs_20",
+    "packId": "customer_service",
+    "speaker": "Customer",
+    "prompt": "Can you speak to a manager?",
+    "options": [
+      { "id": "a", "text": "I am empowered to resolve this. If we still need a manager after that, I’ll connect you." },
+      { "id": "b", "text": "Managers are busy." },
+      { "id": "c", "text": "Why, so you can complain?" }
+    ],
+    "correctOptionId": "a",
+    "why": "You assert capability while keeping escalation available.",
+    "psychology": "People escalate when they feel powerless with the current agent.",
+    "application": "Show authority first; escalate if still unresolved."
+  },
+  {
+    "id": "cc_01",
+    "packId": "cold_calling",
+    "speaker": "Prospect",
+    "prompt": "Who is this and why are you calling?",
+    "options": [
+      { "id": "a", "text": "I’m calling everyone today." },
+      { "id": "b", "text": "Quick intro: I’m [Name] from [Company]. We help teams cut onboarding time—got 30 seconds?" },
+      { "id": "c", "text": "Don’t hang up." }
+    ],
+    "correctOptionId": "b",
+    "why": "Identity, relevance, and a short ask respect their time.",
+    "psychology": "Uncertainty spikes hang-ups; clarity earns a beat.",
+    "application": "Name, company, benefit, and a micro-permission."
+  },
+  {
+    "id": "cc_02",
+    "packId": "cold_calling",
+    "speaker": "Prospect",
+    "prompt": "We’re happy with our current vendor.",
+    "options": [
+      { "id": "a", "text": "Glad that’s working. If priorities shift, what would make a second look worthwhile?" },
+      { "id": "b", "text": "They’re overcharging you." },
+      { "id": "c", "text": "You shouldn’t be." }
+    ],
+    "correctOptionId": "a",
+    "why": "You respect status quo while planting a future trigger.",
+    "psychology": "Attacking loyalty hardens resistance.",
+    "application": "Acknowledge satisfaction, then ask for the switch criteria."
+  },
+  {
+    "id": "cc_03",
+    "packId": "cold_calling",
+    "speaker": "Prospect",
+    "prompt": "Just email me.",
+    "options": [
+      { "id": "a", "text": "Sure—what should the email focus on so it’s useful, not noise?" },
+      { "id": "b", "text": "Email never works." },
+      { "id": "c", "text": "I’ll send a long deck." }
+    ],
+    "correctOptionId": "a",
+    "why": "You accept the channel and sharpen relevance.",
+    "psychology": "Brush-offs soften when the next touch feels customized.",
+    "application": "Confirm topic and success criteria before sending."
+  },
+  {
+    "id": "cc_04",
+    "packId": "cold_calling",
+    "speaker": "Prospect",
+    "prompt": "Now’s a bad time.",
+    "options": [
+      { "id": "a", "text": "Totally fair. When’s a better two-minute window this week?" },
+      { "id": "b", "text": "It’ll only take a minute." },
+      { "id": "c", "text": "I’ll keep talking anyway." }
+    ],
+    "correctOptionId": "a",
+    "why": "You honor timing and book a concrete alternative.",
+    "psychology": "Respect for attention builds reciprocity.",
+    "application": "Offer a short reschedule with a specific window."
+  },
+  {
+    "id": "cc_05",
+    "packId": "cold_calling",
+    "speaker": "Prospect",
+    "prompt": "How did you get my number?",
+    "options": [
+      { "id": "a", "text": "From a public business listing. Happy to explain why I reached out." },
+      { "id": "b", "text": "Does it matter?" },
+      { "id": "c", "text": "Everyone has your number." }
+    ],
+    "correctOptionId": "a",
+    "why": "Transparency reduces creepiness and recenters purpose.",
+    "psychology": "Source opacity triggers distrust.",
+    "application": "State the source plainly, then the reason for contact."
+  },
+  {
+    "id": "ng_01",
+    "packId": "negotiation",
+    "speaker": "Client",
+    "prompt": "We need 30% off or we walk.",
+    "options": [
+      { "id": "a", "text": "If we adjust price, what scope or term can we adjust with it?" },
+      { "id": "b", "text": "Okay, 30% off." },
+      { "id": "c", "text": "Take it or leave it." }
+    ],
+    "correctOptionId": "a",
+    "why": "You trade value instead of conceding unilaterally.",
+    "psychology": "Anchors lose power when you introduce variables.",
+    "application": "Link discounts to term, volume, or scope changes."
+  },
+  {
+    "id": "ng_02",
+    "packId": "negotiation",
+    "speaker": "Client",
+    "prompt": "Your competitor is cheaper.",
+    "options": [
+      { "id": "a", "text": "Price is one factor. Which outcomes matter most beyond sticker cost?" },
+      { "id": "b", "text": "Then buy from them." },
+      { "id": "c", "text": "They’re lying." }
+    ],
+    "correctOptionId": "a",
+    "why": "You reframe from price to total value criteria.",
+    "psychology": "Comparison shoppers still care about risk and results.",
+    "application": "Ask which success metrics outweigh unit price."
+  },
+  {
+    "id": "ng_03",
+    "packId": "negotiation",
+    "speaker": "Client",
+    "prompt": "We want unlimited revisions.",
+    "options": [
+      { "id": "a", "text": "Unlimited isn’t workable. We can include two revision rounds and a change-order path after." },
+      { "id": "b", "text": "Sure, unlimited." },
+      { "id": "c", "text": "No revisions." }
+    ],
+    "correctOptionId": "a",
+    "why": "You protect scope while offering a structured process.",
+    "psychology": "Infinite options create anxiety; structure creates safety.",
+    "application": "Cap revisions and define the exception path."
+  },
+  {
+    "id": "ng_04",
+    "packId": "negotiation",
+    "speaker": "Client",
+    "prompt": "Can you start before we sign?",
+    "options": [
+      { "id": "a", "text": "I can share a prep checklist now; work begins after signature to protect both sides." },
+      { "id": "b", "text": "Yeah, we’ll start unpaid." },
+      { "id": "c", "text": "Absolutely not, ever." }
+    ],
+    "correctOptionId": "a",
+    "why": "You keep momentum without skipping commitment.",
+    "psychology": "Helpfulness without boundaries invites scope creep.",
+    "application": "Offer low-risk prep; require agreement for delivery."
+  },
+  {
+    "id": "ng_05",
+    "packId": "negotiation",
+    "speaker": "Client",
+    "prompt": "That’s our final offer.",
+    "options": [
+      { "id": "a", "text": "Understood. If that’s final, here’s what we can deliver at that number." },
+      { "id": "b", "text": "Final offers are never final." },
+      { "id": "c", "text": "We’re done then." }
+    ],
+    "correctOptionId": "a",
+    "why": "You treat the number as real and resize the package accordingly.",
+    "psychology": "Matching offer to scope avoids deadlocks.",
+    "application": "Accept the constraint, then adjust deliverables."
+  },
+  {
+    "id": "ld_01",
+    "packId": "leadership",
+    "speaker": "Teammate",
+    "prompt": "I missed the deadline. Everything piled up.",
+    "options": [
+      { "id": "a", "text": "Let’s separate what blocked you from what’s still recoverable today." },
+      { "id": "b", "text": "This is unacceptable." },
+      { "id": "c", "text": "Whatever, I’ll do it myself." }
+    ],
+    "correctOptionId": "a",
+    "why": "You diagnose blockers and triage remaining work.",
+    "psychology": "Shame freezes performance; clarity restores agency.",
+    "application": "Review causes, then replan the critical path."
+  },
+  {
+    "id": "ld_02",
+    "packId": "leadership",
+    "speaker": "Teammate",
+    "prompt": "I disagree with the plan.",
+    "options": [
+      { "id": "a", "text": "Good—what risk am I underweighting?" },
+      { "id": "b", "text": "We’re doing it my way." },
+      { "id": "c", "text": "Why are you always negative?" }
+    ],
+    "correctOptionId": "a",
+    "why": "Dissent becomes useful information instead of conflict.",
+    "psychology": "Curiosity converts status battles into problem-solving.",
+    "application": "Invite the strongest counterargument before deciding."
+  },
+  {
+    "id": "ld_03",
+    "packId": "leadership",
+    "speaker": "Teammate",
+    "prompt": "I’m burned out.",
+    "options": [
+      { "id": "a", "text": "Thanks for saying it. What’s one load we can cut this week?" },
+      { "id": "b", "text": "Everyone’s tired." },
+      { "id": "c", "text": "Push through." }
+    ],
+    "correctOptionId": "a",
+    "why": "You validate and take a concrete relief action.",
+    "psychology": "Burnout needs resource change, not pep talks.",
+    "application": "Remove or postpone one real demand immediately."
+  },
+  {
+    "id": "ld_04",
+    "packId": "leadership",
+    "speaker": "Teammate",
+    "prompt": "Who owns this decision?",
+    "options": [
+      { "id": "a", "text": "I do. I’ll decide by 3pm after one more input from design." },
+      { "id": "b", "text": "We’ll figure it out somehow." },
+      { "id": "c", "text": "Anyone can decide." }
+    ],
+    "correctOptionId": "a",
+    "why": "Clear ownership and a deadline kill ambiguity.",
+    "psychology": "Diffusion of responsibility stalls teams.",
+    "application": "Name the owner, input needed, and decide-by time."
+  },
+  {
+    "id": "ld_05",
+    "packId": "leadership",
+    "speaker": "Teammate",
+    "prompt": "The other team keeps blocking us.",
+    "options": [
+      { "id": "a", "text": "Let’s map the dependency and I’ll escalate with a proposed unblock." },
+      { "id": "b", "text": "That’s their problem." },
+      { "id": "c", "text": "Just complain in Slack." }
+    ],
+    "correctOptionId": "a",
+    "why": "You convert frustration into a structured escalation.",
+    "psychology": "Venting without a path deepens helplessness.",
+    "application": "Document the block and propose the unblock request."
+  },
+  {
+    "id": "nw_01",
+    "packId": "networking",
+    "speaker": "New contact",
+    "prompt": "So… what do you do?",
+    "options": [
+      { "id": "a", "text": "I help product teams ship clearer customer messaging—curious what you’re working on?" },
+      { "id": "b", "text": "It’s complicated." },
+      { "id": "c", "text": "I’m between things." }
+    ],
+    "correctOptionId": "a",
+    "why": "A crisp value line plus a question makes it a conversation.",
+    "psychology": "People engage when you show interest after context.",
+    "application": "One-sentence role, then ask about them."
+  },
+  {
+    "id": "nw_02",
+    "packId": "networking",
+    "speaker": "New contact",
+    "prompt": "We should stay in touch.",
+    "options": [
+      { "id": "a", "text": "I’d like that. What’s the best way to follow up this week?" },
+      { "id": "b", "text": "Yeah, totally." },
+      { "id": "c", "text": "Add me on everything." }
+    ],
+    "correctOptionId": "a",
+    "why": "You convert politeness into a specific next step.",
+    "psychology": "Vague intent dies without logistics.",
+    "application": "Agree, then choose channel and timing."
+  },
+  {
+    "id": "nw_03",
+    "packId": "networking",
+    "speaker": "New contact",
+    "prompt": "I don’t really need anything right now.",
+    "options": [
+      { "id": "a", "text": "No ask today—happy to share a resource if useful later. Mind if I connect on LinkedIn?" },
+      { "id": "b", "text": "Then why are we talking?" },
+      { "id": "c", "text": "You’ll need me eventually." }
+    ],
+    "correctOptionId": "a",
+    "why": "Low-pressure follow-up preserves goodwill.",
+    "psychology": "People remember generosity more than pitches.",
+    "application": "Offer optional value; request a light connection."
+  },
+  {
+    "id": "cf_01",
+    "packId": "conflict_resolution",
+    "speaker": "Colleague",
+    "prompt": "You threw me under the bus in that meeting.",
+    "options": [
+      { "id": "a", "text": "I hear that landed badly. What specifically felt unfair?" },
+      { "id": "b", "text": "I was just being honest." },
+      { "id": "c", "text": "You’re too sensitive." }
+    ],
+    "correctOptionId": "a",
+    "why": "You acknowledge impact and invite specifics.",
+    "psychology": "Defensiveness escalates; curiosity de-escalates.",
+    "application": "Validate impact first, then examine facts together."
+  },
+  {
+    "id": "cf_02",
+    "packId": "conflict_resolution",
+    "speaker": "Colleague",
+    "prompt": "We keep talking past each other.",
+    "options": [
+      { "id": "a", "text": "Let’s each restate the other’s point before we respond." },
+      { "id": "b", "text": "I’m being clear; you’re not listening." },
+      { "id": "c", "text": "Fine, do whatever." }
+    ],
+    "correctOptionId": "a",
+    "why": "Reflective listening forces shared understanding.",
+    "psychology": "Mishearing often looks like disagreement.",
+    "application": "Use paraphrase rounds before debating."
+  },
+  {
+    "id": "cf_03",
+    "packId": "conflict_resolution",
+    "speaker": "Colleague",
+    "prompt": "I’m done collaborating with you.",
+    "options": [
+      { "id": "a", "text": "That’s serious. What would need to change for us to work together again?" },
+      { "id": "b", "text": "Same." },
+      { "id": "c", "text": "HR will hear about this." }
+    ],
+    "correctOptionId": "a",
+    "why": "You treat the rupture as negotiable conditions.",
+    "psychology": "Absolute statements often hide repairable needs.",
+    "application": "Ask for change conditions before accepting a split."
+  },
+  {
+    "id": "sl_01",
+    "packId": "sales",
+    "speaker": "Buyer",
+    "prompt": "Send me pricing.",
+    "options": [
+      { "id": "a", "text": "Happy to. So I send the right tier—what size team and main use case?" },
+      { "id": "b", "text": "Here’s our entire price list." },
+      { "id": "c", "text": "Pricing is confidential." }
+    ],
+    "correctOptionId": "a",
+    "why": "You qualify before dumping numbers.",
+    "psychology": "Unanchored pricing invites the lowest tier comparison.",
+    "application": "Ask fit questions, then share relevant pricing."
+  },
+  {
+    "id": "sl_02",
+    "packId": "sales",
+    "speaker": "Buyer",
+    "prompt": "We’re still evaluating options.",
+    "options": [
+      { "id": "a", "text": "Makes sense. What criteria will decide the winner?" },
+      { "id": "b", "text": "Decide faster." },
+      { "id": "c", "text": "You’ll regret waiting." }
+    ],
+    "correctOptionId": "a",
+    "why": "You uncover the decision scorecard.",
+    "psychology": "Vague evaluation hides missing champions or criteria.",
+    "application": "Ask how they’ll choose, by when, and with whom."
+  },
+  {
+    "id": "sl_03",
+    "packId": "sales",
+    "speaker": "Buyer",
+    "prompt": "This feature is a must-have.",
+    "options": [
+      { "id": "a", "text": "Got it. What happens if that feature is missing in month one?" },
+      { "id": "b", "text": "We have that—trust me." },
+      { "id": "c", "text": "Nobody needs that." }
+    ],
+    "correctOptionId": "a",
+    "why": "You test whether it’s true must-have vs nice-to-have.",
+    "psychology": "Stated requirements often inflate under pressure.",
+    "application": "Probe consequence to prioritize real blockers."
+  },
+  {
+    "id": "ps_01",
+    "packId": "public_speaking",
+    "speaker": "Audience member",
+    "prompt": "Can you get to the point?",
+    "options": [
+      { "id": "a", "text": "Absolutely—the one takeaway is X. Here’s the 20-second version." },
+      { "id": "b", "text": "I’m almost there." },
+      { "id": "c", "text": "Let me finish my story." }
+    ],
+    "correctOptionId": "a",
+    "why": "You honor the ask with a crisp headline.",
+    "psychology": "Attention recovers when value becomes immediate.",
+    "application": "Lead with the takeaway, then optional detail."
+  },
+  {
+    "id": "ps_02",
+    "packId": "public_speaking",
+    "speaker": "Audience member",
+    "prompt": "What if you’re wrong?",
+    "options": [
+      { "id": "a", "text": "Fair challenge. Here’s the evidence, and here’s where I could be wrong." },
+      { "id": "b", "text": "I’m not wrong." },
+      { "id": "c", "text": "That’s a dumb question." }
+    ],
+    "correctOptionId": "a",
+    "why": "Confidence plus intellectual humility builds credibility.",
+    "psychology": "Certainty without caveats sounds fragile.",
+    "application": "Share evidence and your falsification conditions."
+  },
+  {
+    "id": "ct_01",
+    "packId": "consulting",
+    "speaker": "Client",
+    "prompt": "Just tell us what to do.",
+    "options": [
+      { "id": "a", "text": "I will. First I need the constraint that matters most: speed, cost, or risk?" },
+      { "id": "b", "text": "Do whatever competitors do." },
+      { "id": "c", "text": "You should already know." }
+    ],
+    "correctOptionId": "a",
+    "why": "Recommendations need a priority frame to be useful.",
+    "psychology": "Advice without constraints feels generic.",
+    "application": "Clarify the tradeoff, then recommend."
+  },
+  {
+    "id": "ct_02",
+    "packId": "consulting",
+    "speaker": "Client",
+    "prompt": "We already tried that.",
+    "options": [
+      { "id": "a", "text": "Helpful—what made it fail last time, so we don’t repeat it?" },
+      { "id": "b", "text": "Then you did it wrong." },
+      { "id": "c", "text": "Try harder." }
+    ],
+    "correctOptionId": "a",
+    "why": "Past failure becomes diagnostic input.",
+    "psychology": "People resist recycled advice that ignored history.",
+    "application": "Ask what was tried, measured, and blocked."
+  },
+  {
+    "id": "dt_01",
+    "packId": "dating",
+    "speaker": "Date",
+    "prompt": "I had a weird day. Maybe I’m bad company tonight.",
+    "options": [
+      { "id": "a", "text": "Thanks for saying that. Want to vent a bit, or prefer a lighter topic?" },
+      { "id": "b", "text": "Same, whatever." },
+      { "id": "c", "text": "Don’t bring that energy here." }
+    ],
+    "correctOptionId": "a",
+    "why": "You offer choice and emotional safety.",
+    "psychology": "Autonomy in conversation lowers social pressure.",
+    "application": "Acknowledge, then let them set the depth."
+  },
+  {
+    "id": "dt_02",
+    "packId": "dating",
+    "speaker": "Date",
+    "prompt": "I’m not sure this is a match.",
+    "options": [
+      { "id": "a", "text": "I appreciate the honesty. What felt off, if you’re open to sharing?" },
+      { "id": "b", "text": "You’re wrong about that." },
+      { "id": "c", "text": "Fine, your loss." }
+    ],
+    "correctOptionId": "a",
+    "why": "Graceful curiosity keeps dignity on both sides.",
+    "psychology": "Defensiveness confirms the mismatch.",
+    "application": "Thank them, invite optional feedback, accept the answer."
+  }
+]
