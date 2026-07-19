@@ -49,14 +49,14 @@ export class CombatScene extends Phaser.Scene {
   wasd!: Record<"W" | "A" | "S" | "D", Phaser.Input.Keyboard.Key>;
   joystick = { active: false, dx: 0, dy: 0 };
 
-  hp = GAME.playerMaxHp;
-  maxHp = GAME.playerMaxHp;
+  hp: number = GAME.playerMaxHp;
+  maxHp: number = GAME.playerMaxHp;
   level = 1;
   xp = 0;
-  xpToNext = GAME.xpBase;
+  xpToNext: number = GAME.xpBase;
   kills = 0;
   wave = 1;
-  waveTimer = GAME.waveDuration;
+  waveTimer: number = GAME.waveDuration;
   survivalSeconds = 0;
   spawnAcc = 0;
   fireAcc = 0;
