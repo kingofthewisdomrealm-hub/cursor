@@ -89,3 +89,16 @@
   height: 100% !important;
   object-fit: contain;
 }
+
+.mastery-stone {
+  clip-path: polygon(8% 0, 92% 0, 100% 100%, 0 100%);
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mastery-stone,
+  .animate-rise {
+    animation: none;
+    transition: none;
+  }
+}

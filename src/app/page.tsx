@@ -62,6 +62,12 @@ export default function HomePage() {
         >
           Enter the city
         </Link>
+        <Link
+          href="/mastery"
+          className="mt-3 flex w-full items-center justify-center border border-rose/50 px-5 py-4 font-display text-sm font-semibold uppercase tracking-[0.18em] text-rose transition hover:bg-rose/10 active:scale-[0.99]"
+        >
+          Become dangerous
+        </Link>
       </section>
 
       <section className="relative mt-10">
