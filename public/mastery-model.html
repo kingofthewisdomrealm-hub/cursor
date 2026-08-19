@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#070b16" />
+  <title>Become dangerous — Cursor mastery pyramid</title>
+  <meta name="description" content="Six stones from Spectator to Dangerous. A personal climb from Cloud-agent sprinter to a product that stays alive." />
+  <meta property="og:title" content="Become dangerous — Cursor mastery pyramid" />
+  <meta property="og:description" content="Tap a stone. Check every mission. The peak is practice, not a badge." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #070b16;
+      --panel: #0d1428;
+      --fog: #9aa8c7;
+      --rose: #ff4d6d;
+      --amber: #ffd166;
+      --white: #ffffff;
+    }
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body {
+      font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+      color: var(--white);
+      background:
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(57, 243, 255, 0.14), transparent 55%),
+        radial-gradient(ellipse 70% 45% at 90% 10%, rgba(255, 0, 110, 0.12), transparent 50%),
+        radial-gradient(ellipse 60% 40% at 50% 100%, rgba(80, 40, 140, 0.18), transparent 55%),
+        linear-gradient(180deg, #070b16 0%, #0a1224 100%);
+      background-attachment: fixed;
+    }
+    .display { font-family: Orbitron, ui-sans-serif, system-ui, sans-serif; }
+    .wrap { max-width: 32rem; margin: 0 auto; padding: 1.5rem 1rem 4rem; min-height: 100dvh; }
+    .kicker { font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--rose); }
+    h1 { margin: 0.35rem 0 0; font-size: clamp(1.7rem, 6vw, 3rem); line-height: 1.05; letter-spacing: -0.02em; }
+    h1 span { color: var(--rose); }
+    .lead { color: var(--fog); line-height: 1.55; margin-top: 1.1rem; }
+    .lead strong { color: var(--white); font-weight: 500; }
+    button { font: inherit; }
+    .btn {
+      width: 100%; border: 0; cursor: pointer;
+      padding: 1rem 1.25rem; margin-top: 2rem;
+      font-family: Orbitron, sans-serif; font-size: 13px; font-weight: 600;
+      letter-spacing: 0.18em; text-transform: uppercase;
+    }
+    .btn-primary { background: var(--rose); color: #fff; }
+    .btn-primary:hover { filter: brightness(1.08); }
+    .btn-primary:active { transform: scale(0.99); }
+    .header { display: flex; justify-content: space-between; align-items: flex-end; gap: 0.75rem; margin-bottom: 1.5rem; }
+    .header h2 { margin: 0.25rem 0 0; font-size: 1.5rem; }
+    .share {
+      font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--fog); background: none; border: 0; cursor: pointer; padding: 0;
+    }
+    .share.copied { color: #7dffb3; }
+    .peak {
+      border: 1px solid rgba(255, 77, 109, 0.4);
+      background: rgba(255, 77, 109, 0.1);
+      padding: 0.75rem; margin-bottom: 1.25rem; font-size: 0.9rem;
+    }
+    .pyramid { position: relative; padding: 0 0.5rem; }
+    .glow {
+      pointer-events: none; position: absolute; inset: -2rem 2rem auto;
+      height: 6rem;
+      background: radial-gradient(ellipse at center, rgba(255,107,61,0.28), transparent 70%);
+      filter: blur(8px);
+    }
+    ol.stones { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .stone {
+      clip-path: polygon(8% 0, 92% 0, 100% 100%, 0 100%);
+      width: 100%; border: 0; cursor: pointer; padding: 0.75rem 0.5rem; text-align: center;
+      transition: transform 0.25s ease, filter 0.25s ease;
+    }
+    .stone.viewed { transform: scale(1.03); }
+    .stone:hover { filter: brightness(1.1); }
+    .stone.locked { cursor: default; }
+    .lvl { display: block; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; }
+    .name { display: block; margin-top: 2px; color: #fff; font-size: 0.95rem; letter-spacing: 0.04em; }
+    .caption { text-align: center; margin: 0.75rem 0 0; font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--fog); }
+    .panel {
+      margin-top: 2rem; border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(13, 20, 40, 0.8); padding: 1.15rem 1.1rem;
+    }
+    .panel h3 { margin: 0.4rem 0 0; font-size: 1.65rem; letter-spacing: -0.02em; }
+    .epithet { color: var(--fog); margin: 0.35rem 0 0; font-size: 0.95rem; }
+    .lock { color: var(--amber); margin-top: 1rem; font-size: 0.95rem; line-height: 1.5; }
+    .block { margin-top: 1.1rem; color: var(--fog); font-size: 0.95rem; line-height: 1.55; }
+    .block .label { display: block; color: rgba(255,255,255,0.7); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 0.2rem; }
+    .missions { list-style: none; margin: 1.4rem 0 0; padding: 0; display: grid; gap: 0.5rem; }
+    .missions label {
+      display: flex; gap: 0.75rem; cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03);
+      padding: 0.75rem;
+    }
+    .missions label:hover { border-color: rgba(255,255,255,0.25); }
+    .missions input { margin-top: 0.2rem; width: 1rem; height: 1rem; flex-shrink: 0; }
+    .missions .mlabel { display: block; color: #fff; font-size: 0.95rem; }
+    .missions .detail { display: block; margin-top: 0.3rem; color: var(--fog); font-size: 0.8rem; line-height: 1.45; }
+    .nav { display: flex; gap: 0.5rem; margin-top: 1.4rem; }
+    .nav button {
+      border: 1px solid rgba(255,255,255,0.15); background: transparent; color: var(--fog);
+      padding: 0.8rem; cursor: pointer;
+      font-family: Orbitron, sans-serif; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    }
+    .nav button:disabled { opacity: 0.3; cursor: default; }
+    .nav .down { flex: 1; }
+    .nav .climb { flex: 2; }
+    .reset {
+      display: block; width: 100%; margin-top: 2rem; background: none; border: 0;
+      color: rgba(154,168,199,0.5); cursor: pointer;
+      font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    }
+    .hint { margin-top: 2rem; color: rgba(154,168,199,0.7); font-size: 0.75rem; line-height: 1.5; text-align: center; }
+    @media (prefers-reduced-motion: reduce) {
+      .stone, .btn-primary { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="wrap"></div>
+  <script>
+    const DIAGNOSED = 2;
+    const STORE = "cursor-mastery-pyramid-share";
+    const LEVELS = [
+      {
+        id: 0, name: "Spectator", epithet: "Installed. Unused.", width: 100,
+        accent: "#6d7690", glow: "rgba(109, 118, 144, 0.35)",
+        looksLike: "Cursor is on the dock. ChatGPT is still where the work happens. You have not asked the editor to touch a file.",
+        you: "You left this level the first week. You already let agents write and merge code. Do not camp here.",
+        why: "Most people never start. You did. The danger is thinking that starting is the whole game.",
+        missions: [
+          { id: "open-cursor", label: "Open Cursor on Desktop at least once this week", detail: "Phone Cloud Agents are a surface. The IDE is the instrument." },
+          { id: "one-repo", label: "Know which GitHub repo is the source of truth", detail: "If everything lives in a junk drawer named cursor, nothing is the product." }
+        ]
+      },
+      {
+        id: 1, name: "Prompt tourist", epithet: "ChatGPT in a trench coat.", width: 86,
+        accent: "#8aa0c8", glow: "rgba(138, 160, 200, 0.35)",
+        looksLike: "One-shot prompts. Copy-paste. No diff. No thread. The model is a vending machine.",
+        you: "You skipped the tourist phase on specs — yours are unusually sharp. You still tour on follow-ups: “produce url,” “not working,” then a new agent.",
+        why: "Tourists generate. Operators steer. The gap is whether you read what came back.",
+        missions: [
+          { id: "read-diff", label: "Open one PR and read the files changed before you merge", detail: "If you cannot say what changed, you did not ship. The agent did." },
+          { id: "stay-thread", label: "Reply in the same agent instead of launching a twin", detail: "Two Communication Survival agents, five minutes apart, was tourism with extra steps." }
+        ]
+      },
+      {
+        id: 2, name: "Cloud-agent sprinter", epithet: "You are here.", width: 72,
+        accent: "#39f3ff", glow: "rgba(57, 243, 255, 0.45)",
+        looksLike: "Long product specs from the phone. Cloud Agent builds an MVP. You ask for a friend URL. Merge or abandon. Next idea.",
+        you: "19 agents. 16 products. 8 merges that overwrote each other. Spec quality is Level 3. Finish quality is Level 1. This stone is home until you keep one codebase alive.",
+        why: "Sprinting feels like mastery because the PR exists. It is not. Cursor made starting cheap. Finishing is still expensive — and that is the skill.",
+        missions: [
+          { id: "pick-one", label: "Pick ONE product. Give it its own repo.", detail: "Tax Mapper and Communication Survival are the two that actually got follow-through. Choose. Leave this junk drawer." },
+          { id: "five-bugs", label: "Play it yourself. Send five specific bugs before any friend URL.", detail: "“URL works, game doesn’t” was your best report. Make that the default." },
+          { id: "real-host", label: "Put it on a real host, not a dying tunnel", detail: "Friends hitting Cloudflare 1033 is not a launch. Vercel or Pages that you actually enabled." },
+          { id: "desktop-build", label: "Build the next feature on Desktop, not a new mobile agent", detail: "Phone is for kicks and follow-ups. Desktop is for Tab, the diff, and the running app." },
+          { id: "one-rule", label: "Write one Cursor rule: never replace the whole app", detail: "A .cursor/rules file is the cheapest way to stop agents from deleting last week’s product." }
+        ]
+      },
+      {
+        id: 3, name: "Iterative builder", epithet: "Same repo. Second month.", width: 58,
+        accent: "#7dffb3", glow: "rgba(125, 255, 179, 0.4)",
+        looksLike: "One product. Desktop Agent plus Tab. You play it. You file real bugs. You review the diff. You ship to a URL that still works tomorrow.",
+        you: "You have not lived here yet. Outcome Agent and Tax Mapper brushed it — then a new spec wiped the slate. This is the first level that compounds.",
+        why: "Dangerous people have scar tissue in one codebase. Not a museum of first drafts.",
+        missions: [
+          { id: "ten-days", label: "Work the same repo for ten sessions without starting a new product", detail: "If a new idea hits, write it in a note. Do not spawn an agent." },
+          { id: "name-surfaces", label: "Say out loud what Tab, Agent, and Cloud Agent are each for", detail: "Tab = small edit. Agent = a feature in the repo. Cloud = long job while you walk. Stop using Cloud for everything." },
+          { id: "last-pr", label: "Explain your last PR to a friend without opening GitHub", detail: "If you cannot, you merged a blur. Go back and look." }
+        ]
+      },
+      {
+        id: 4, name: "Workflow designer", epithet: "The tool starts remembering you.", width: 50,
+        accent: "#ffd166", glow: "rgba(255, 209, 102, 0.4)",
+        looksLike: "Rules. Environment. Model choice. MCP when it earns its keep. CI. Follow-ups on the same thread. Agents compound instead of resetting.",
+        you: "Setup PR is still a draft. No saved environment. Default model every time. You asked an agent to organize your agents — that impulse belongs here, after Level 3 is a habit.",
+        why: "At 4, Cursor stops being a genie and becomes a workshop you designed. Do not skip 3 to play with 4’s toys. They will multiply the firehose.",
+        missions: [
+          { id: "env-json", label: "Give Cloud Agents a working environment.json", detail: "Install, start, ports. Agents should boot into a running app, not a cold machine." },
+          { id: "pick-model", label: "Choose a model on purpose for one hard task", detail: "Default is fine for chores. Architecture and review are not chores." },
+          { id: "ci-green", label: "Do not merge red CI. Ever.", detail: "You already asked an agent to fix a failing check once. Make that non-negotiable." }
+        ]
+      },
+      {
+        id: 5, name: "Dangerous", epithet: "The peak.", width: 36,
+        accent: "#ff6b3d", glow: "rgba(255, 107, 61, 0.55)",
+        looksLike: "Custom skills. Automations. Evals. Team defaults. Cursor is how the product ships, not how ideas get sketched. You can leave for a day and the system still has taste.",
+        you: "This is not a setting. It is a career. You get here by keeping Level 3 for months, then teaching the tool your standards.",
+        why: "Dangerous means you waste almost no motion. One thread. One product. Agents that already know your rules. Ideas wait their turn.",
+        missions: [
+          { id: "taste-in-rules", label: "Encode your taste so a new agent sounds like you on day one", detail: "Stack, voice, “never replace the app,” how you test, how you ship." },
+          { id: "teach-one", label: "Teach one person this pyramid using your own scars", detail: "If you can teach it, you own it. 16 products in 7 days is the scar. Use it." }
+        ]
+      }
+    ];
+
+    const byId = Object.fromEntries(LEVELS.map((l) => [l.id, l]));
+    const empty = () => ({ introSeen: false, viewedLevel: DIAGNOSED, completed: {} });
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORE);
+        if (!raw) return empty();
+        const parsed = JSON.parse(raw);
+        return {
+          introSeen: Boolean(parsed.introSeen),
+          viewedLevel: Number.isInteger(parsed.viewedLevel) ? parsed.viewedLevel : DIAGNOSED,
+          completed: parsed.completed && typeof parsed.completed === "object" ? parsed.completed : {}
+        };
+      } catch {
+        return empty();
+      }
+    }
+
+    let state = load();
+    function save() { localStorage.setItem(STORE, JSON.stringify(state)); }
+    function done(id) { return state.completed[id] || []; }
+    function cleared(id) { return byId[id].missions.every((m) => done(id).includes(m.id)); }
+    function unlocked(id) {
+      if (id <= DIAGNOSED) return true;
+      return cleared(id - 1);
+    }
+    function clearedCount() { return LEVELS.filter((l) => cleared(l.id)).length; }
+
+    function share() {
+      const url = location.href.split("#")[0];
+      const title = "Become dangerous — Cursor mastery pyramid";
+      if (navigator.share) {
+        navigator.share({ title, url }).catch(() => copy(url));
+        return;
+      }
+      copy(url);
+    }
+
+    function copy(url) {
+      const doneCopy = () => {
+        const el = document.getElementById("share-btn");
+        if (!el) return;
+        el.textContent = "Copied";
+        el.classList.add("copied");
+        setTimeout(() => { el.textContent = "Copy link"; el.classList.remove("copied"); }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(doneCopy).catch(() => fallbackCopy(url, doneCopy));
+      } else {
+        fallbackCopy(url, doneCopy);
+      }
+    }
+
+    function fallbackCopy(url, doneCopy) {
+      const ta = document.createElement("textarea");
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      doneCopy();
+    }
+
+    function esc(s) {
+      return String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function render() {
+      const root = document.getElementById("app");
+      if (!state.introSeen) {
+        root.innerHTML = `
+          <p class="kicker display">Hierarchy of mastery</p>
+          <h1 class="display">Become<br /><span>dangerous</span></h1>
+          <p class="lead">Six stones. You are not at the bottom. You are not at the peak. You are Level ${DIAGNOSED} — Cloud-agent product sprinter. This climb is personal: 19 agents, 16 products, an overwritten <strong>main</strong>.</p>
+          <p class="lead">Tap a stone. Check every mission. The next level unlocks only when you commit — not when an agent opens a PR.</p>
+          <button class="btn btn-primary" id="begin">Begin at the base</button>
+          <p class="hint">Send the link, not a file:// path. This page works in any browser.</p>
+        `;
+        document.getElementById("begin").onclick = () => {
+          state.introSeen = true;
+          state.viewedLevel = 0;
+          save();
+          render();
+        };
+        return;
+      }
+
+      const level = byId[state.viewedLevel];
+      const isUnlocked = unlocked(state.viewedLevel);
+      const isCleared = cleared(state.viewedLevel);
+      const canNext = state.viewedLevel < 5 && isCleared;
+      const peak = clearedCount() === LEVELS.length;
+      const climbLabel = state.viewedLevel === 5 && isCleared
+        ? "Peak held"
+        : canNext
+          ? `Climb to L${state.viewedLevel + 1}`
+          : isUnlocked
+            ? "Check every mission"
+            : "Locked";
+
+      const stones = [...LEVELS].reverse().map((l) => {
+        const open = unlocked(l.id);
+        const doneLvl = cleared(l.id);
+        const viewed = state.viewedLevel === l.id;
+        const here = l.id === DIAGNOSED;
+        const status = here ? " · you are here" : doneLvl ? " · cleared" : open ? "" : " · locked";
+        const bg = open
+          ? `linear-gradient(180deg, ${l.accent}33, ${l.accent}14)`
+          : "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))";
+        const shadow = viewed
+          ? `0 0 0 1px ${l.accent}, 0 8px 28px ${l.glow}`
+          : `0 0 0 1px ${open ? l.accent + "55" : "rgba(255,255,255,0.08)"}`;
+        return `
+          <li style="width:${l.width}%">
+            <button class="stone ${viewed ? "viewed" : ""} ${open ? "" : "locked"}" data-id="${l.id}"
+              style="background:${bg}; box-shadow:${shadow}; color:${open ? l.accent : "#6d7690"}">
+              <span class="lvl display">L${l.id}${status}</span>
+              <span class="name display">${esc(l.name)}</span>
+            </button>
+          </li>`;
+      }).join("");
+
+      const missions = isUnlocked
+        ? `<div class="block"><span class="label display">Looks like</span>${esc(level.looksLike)}</div>
+           <div class="block"><span class="label display">You, honestly</span>${esc(level.you)}</div>
+           <div class="block"><span class="label display">Why it matters</span>${esc(level.why)}</div>
+           <ol class="missions">${level.missions.map((m) => {
+             const checked = done(level.id).includes(m.id) ? "checked" : "";
+             return `<li><label>
+               <input type="checkbox" data-mid="${esc(m.id)}" ${checked} style="accent-color:${level.accent}" />
+               <span><span class="mlabel">${esc(m.label)}</span><span class="detail">${esc(m.detail)}</span></span>
+             </label></li>`;
+           }).join("")}</ol>`
+        : `<p class="lock">Locked. Clear every mission on Level ${state.viewedLevel - 1} first. Peeking at the peak without the scar tissue is how you stay a sprinter.</p>`;
+
+      root.innerHTML = `
+        <header class="header">
+          <div>
+            <p class="kicker display">Ascent ${clearedCount()}/${LEVELS.length}</p>
+            <h2 class="display">The pyramid</h2>
+          </div>
+          <button class="share" id="share-btn" type="button">Copy link</button>
+        </header>
+        ${peak ? `<p class="peak">Peak held. Dangerous is a practice, not a badge. Keep one repo alive.</p>` : ""}
+        <div class="pyramid">
+          <div class="glow"></div>
+          <ol class="stones">${stones}</ol>
+          <p class="caption display">Peak is dangerous · Base is unused</p>
+        </div>
+        <section class="panel" style="box-shadow: inset 0 1px 0 ${level.accent}22">
+          <p class="kicker display" style="color:${level.accent}">Level ${level.id}${state.viewedLevel === DIAGNOSED ? " · diagnosed" : ""}${isCleared ? " · cleared" : ""}</p>
+          <h3 class="display">${esc(level.name)}</h3>
+          <p class="epithet">${esc(level.epithet)}</p>
+          ${missions}
+          <div class="nav">
+            <button class="down" id="down" ${state.viewedLevel > 0 ? "" : "disabled"}>Down</button>
+            <button class="climb" id="climb" ${canNext ? "" : "disabled"}
+              style="background:${canNext ? level.accent : "rgba(255,255,255,0.12)"}; color:${canNext ? "#071018" : "#9aa8c7"}; border:0">
+              ${climbLabel}
+            </button>
+          </div>
+        </section>
+        <button class="reset" id="reset">Reset climb</button>
+        <p class="hint">Share this page with a link. A file:// address only works on your computer.</p>
+      `;
+
+      document.getElementById("share-btn").onclick = share;
+      document.getElementById("down").onclick = () => {
+        if (state.viewedLevel <= 0) return;
+        state.viewedLevel -= 1;
+        save();
+        render();
+      };
+      document.getElementById("climb").onclick = () => {
+        if (!canNext) return;
+        state.viewedLevel += 1;
+        save();
+        render();
+      };
+      document.getElementById("reset").onclick = () => {
+        state = empty();
+        save();
+        render();
+      };
+      root.querySelectorAll(".stone").forEach((btn) => {
+        btn.onclick = () => {
+          state.viewedLevel = Number(btn.dataset.id);
+          save();
+          render();
+        };
+      });
+      root.querySelectorAll(".missions input").forEach((box) => {
+        box.onchange = () => {
+          const id = box.dataset.mid;
+          const current = done(level.id);
+          state.completed[level.id] = box.checked
+            ? current.concat(id)
+            : current.filter((x) => x !== id);
+          save();
+          render();
+        };
+      });
+    }
+
+    render();
+  </script>
+</body>
+</html>
