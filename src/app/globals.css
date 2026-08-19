@@ -91,7 +91,8 @@
 }
 
 .mastery-stone {
-  clip-path: polygon(7% 0, 93% 0, 100% 100%, 0 100%);
+  clip-path: polygon(8% 0, 92% 0, 100% 100%, 0 100%);
+  overflow: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {

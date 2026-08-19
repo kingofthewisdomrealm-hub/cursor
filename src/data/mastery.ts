@@ -147,7 +147,7 @@ export const LEVELS: MasteryLevel[] = [
     id: 4,
     name: "Workflow designer",
     epithet: "The tool starts remembering you.",
-    width: 44,
+    width: 50,
     accent: "#ffd166",
     glow: "rgba(255, 209, 102, 0.4)",
     looksLike:
@@ -177,7 +177,7 @@ export const LEVELS: MasteryLevel[] = [
     id: 5,
     name: "Dangerous",
     epithet: "The peak.",
-    width: 30,
+    width: 36,
     accent: "#ff6b3d",
     glow: "rgba(255, 107, 61, 0.55)",
     looksLike:

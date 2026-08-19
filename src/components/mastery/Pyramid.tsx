@@ -43,7 +43,7 @@ export function Pyramid({ viewedLevel, completed, onSelect }: PyramidProps) {
                 onClick={() => onSelect(level.id)}
                 aria-current={viewed ? "step" : undefined}
                 aria-label={`${level.name}, level ${level.id}${here ? ", you are here" : ""}${unlocked ? "" : ", locked"}`}
-                className={`mastery-stone relative w-full py-3 text-center transition duration-300 ${
+                className={`mastery-stone relative w-full px-2 py-3 text-center transition duration-300 ${
                   viewed ? "scale-[1.03]" : "hover:brightness-110"
                 } ${unlocked ? "cursor-pointer" : "cursor-default"}`}
                 style={{

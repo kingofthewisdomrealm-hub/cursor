@@ -130,7 +130,9 @@ export function LevelPanel({
             ? "Peak held"
             : canNext
               ? `Climb to L${viewedLevel + 1}`
-              : "Check every mission"}
+              : unlocked
+                ? "Check every mission"
+                : "Locked"}
         </button>
       </div>
     </section>
